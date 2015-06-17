@@ -146,7 +146,7 @@ def register_admin_menu_item():
     return hook_instance.get_menu_item()
 ```
 
-## NOTES
+## Notes
 
 - For a list of available icons that can be used, you can enable Wagtail's 
 Styleguide (http://docs.wagtail.io/en/latest/contributing/styleguide.html),
@@ -154,6 +154,6 @@ and view the page it creates in the CMS for you. The list of icons can be found
 toward the bottom of the page.
 
 
-## TO-DO
+## To-do
 
 - Use SASS for additional styles, rather than plain old CSS
