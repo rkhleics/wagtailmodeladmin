@@ -1,4 +1,4 @@
-# WHAT IS wagtailmodeladmin?
+# What is wagtailmodeladmin?
 
 While we don't disagree with the way Wagtail leads the user down it's 
 tree-oriented views for managing all 'Page' content, or the Snippet 
@@ -17,33 +17,32 @@ similar functionality to that of django's ModelAdmin class, allowing for:
 - customisable filters (via _list_filter_)
 - ability for user to reorder results from the listing page
 
-NOTE: **list_display** supports all the things that django's ModelAdmin does 
+NOTE: _list_display_ supports all the things that django's ModelAdmin does 
 (including _short_description_ and _admin_order_field_ on custom methods
 and properties), giving you lots of flexibility when it comes to output.
-[Read more about list_display in Django's official docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display).
+[Read more about list_display in Django's official docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display). 
+It should be a similar story for the other attributes mentioned above, but
+we haven't tested things thoroughly enough to say for sure.
 
-The same goes for the other attributes mentioned above, but we haven't tested
-things thoroughly enough to say for sure.
-
-## HOW TO INSTALL
+## How to install
 
 1. Download the app and copy it to the directory where your other apps live
 2. Add **wagtailmodeladmin** to **INSTALLED_APPS** in your project settings
 3. Add the **wagtailmodeladmin.middleware.ModelAdminMiddleware** class to **MIDDLEWARE_CLASSES** in your project settings
 4. Add a **wagtail_hooks.py** file to your app's folder and extend the PageModelAdmin, SnippetModelAdmin and AppModelAdmin classes to produce the desired effect
 
-## A SIMPLE EXAMPLE
+## A simple example
 
 You have a model in your app that extends Wagtail's Page model, and you want
 a listing page specifically for that model, with a menu item added to the menu
 in Wagtail's CMS so that you can get to it.
 
-This is what the **wagtail_hooks.py** in your app directory might look like: 
+**wagtail_hooks.py** in your app directory would look something like this: 
 
 
 ```python
 from wagtail.wagtailcore import hooks
-from ..wagtailmodeladmin import PageModelAdmin
+from wagtailmodeladmin import PageModelAdmin
 from .models import MyPageModel
 
 
@@ -74,18 +73,18 @@ def register_admin_menu_item():
     return hook_instance.get_menu_item()
 ```
 
-## A MORE COMPLICATED EXAMPLE
+## A more complicated example
 
 You have an app with several models that you want to show grouped together in
 Wagtail's admin menu. Some of the models might extend Page, and others might
 be simpler models that are registered as Snippets, but no bother. AppModelAdmin
 allows you to group them all together nicely.
 
-This is what the **wagtail_hooks.py** in your app directory might look like: 
+**wagtail_hooks.py** in your app directory would look something like this: 
 
 ```python
 from wagtail.wagtailcore import hooks
-from ..wagtailmodeladmin import (PageModelAdmin, SnippetModelAdmin,
+from wagtailmodeladmin import (PageModelAdmin, SnippetModelAdmin,
                                  AppModelAdmin)
 from .models import (MyPageModel, MyOtherPageModel, MySnippetModel,
                      MyOtherSnippetModel)
