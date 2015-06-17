@@ -1,0 +1,75 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n wagtailadmin_tags compress admin_urls admin_static wagtailmodeladmin_tags %}
+
+{% block titletag %}{{ title }}{% endblock %}
+
+{% block css %}
+    {{ block.super }}
+    {% compress css %}
+        <link rel="stylesheet" type="text/css" href="{% static "wagtailmodeladmin/css/choose_parent.css" %}" />
+        {{ media.css }}
+    {% endcompress %}
+    <style type="text/css">
+        .nav-main li.menu-{{ module_name_plural }} {
+            background: #1a1a1a;
+            text-shadow: -1px -1px 0px rgba(0, 0, 0, 0.3);
+        }
+        .nav-main li.menu-{{ module_name_plural }} > a {
+            border-left-color: #f37e77;
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block extra_js %}
+    {% compress js %}
+        {{ media.js }}
+    {% endcompress %}
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <header class="nice-padding" style="margin-bottom: 30px;">
+    <div class="row">
+        <div class="left">
+            <div class="col">
+                <h1 class="icon {{ module_icon }}">{% blocktrans with module_name|title as name %}Add {{ name }}{% endblocktrans %}</h1>
+            </div>
+            
+        </div>
+        <div class="right">
+        </div>
+    </div>
+    </header>
+    <div class="nice-padding">
+        {% if form %}
+        <form action="" method="POST">
+            {% csrf_token %}
+            <ul class="fields">
+                {% for field in form %}
+                <li class="required{% if field.errors %} error{% endif %}">
+                    <label for="{{ field.id_for_label }}" style="width:auto;">{{ field.label }}:</label>
+                    {{ field }}
+                </li>
+                {% endfor %}
+                <li><input type="submit" class="button" value="{% trans 'Continue' %}"></li>
+            </ul>
+            
+        </form>
+        {% else %}
+            <h2>{% blocktrans with module_name_plural as name %}Sorry, {{ name }} can't be added just yet...{% endblocktrans %}</h2>
+            <p>{{ no_valid_parents_message|capfirst }}</p>
+            {% if parent_types %}
+                <ul>
+                    {% for type in parent_types %}
+                    <li>{{ type|capfirst }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p><strong>No page types found!</strong></p>
+            {% endif %}
+            <p style="padding-top:20px"><a href="{% url 'wagtailadmin_explore_root' %}" class="button">{% trans 'Manage pages' %}</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

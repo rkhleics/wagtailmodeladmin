@@ -1,0 +1,10 @@
+{% load i18n wagtailmodeladmin_tags %}
+<div class="pagination {% if cl.has_filters %}col9{% else %}col12{% endif %}">
+    <p>Page {{ current_page.number }} of {{ paginator.num_pages }}.</p>
+    {% if paginator.num_pages > 1 %}
+        <ul>
+            {% pagination_link_previous cl current_page %}
+            {% pagination_link_next cl current_page %}
+        </ul>
+    {% endif %}
+</div>

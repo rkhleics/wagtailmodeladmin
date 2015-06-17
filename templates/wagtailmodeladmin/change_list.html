@@ -1,0 +1,77 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n wagtailadmin_tags compress admin_urls admin_static wagtailmodeladmin_tags %}
+
+{% block titletag %}{{ title }}{% endblock %}
+
+{% block css %}
+{{ block.super }}
+    {% compress css %}
+        <link rel="stylesheet" type="text/css" href="{% static "wagtailmodeladmin/css/change_list.css" %}" />
+        <style type="text/css">
+            .nav-main li.menu-{{ module_name_plural }} {
+                background: #1a1a1a;
+                text-shadow: -1px -1px 0px rgba(0, 0, 0, 0.3);
+            }
+            .nav-main li.menu-{{ module_name_plural }} > a {
+                border-left-color: #f37e77;
+                color: white;
+            }
+        </style>
+    {% endcompress %}
+{% endblock %}
+
+{% block extra_js %}
+    {% compress js %}
+        {{ media.js }}
+    {% endcompress %}
+{% endblock %}
+
+{% block content %}
+<header class="nice-padding hasform">
+    <div class="row">
+        <div class="left">
+            <div class="col">
+                <h1 class="icon {{ module_icon }}">{{ module_name_plural|title }}<span></span></h1>
+            </div>
+            {% block search %}{% search_form cl %}{% endblock %}
+        </div>
+        {% if has_add_permission %}
+        <div class="right">
+            <div class="addbutton">
+                <a href="{{ add_url }}" class="button bicolor icon icon-plus">{% blocktrans with module_name as name %}Add {{ name }}{% endblocktrans %}</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</header>
+
+<div id="content-main">
+    <div class="row" id="changelist">
+    
+    {% block filters %}
+        {% if cl.has_filters and not no_items %}
+        <div id="changelist-filter" class="col3">
+            <h2>{% trans 'Filter' %}</h2>
+            {% for spec in cl.filter_specs %}{% admin_list_filter cl spec %}{% endfor %}
+        </div>
+        {% endif %}
+    {% endblock %}
+
+    <div id="result_list" class="{% if cl.has_filters and not no_items %}col9{% else %}col12{% endif %}">
+    {% block result_list %}
+        {% if no_items %}
+            <div class="nice-padding" style="margin-top:30px;">
+                <p>{% blocktrans with module_name_plural as name %}No {{ name }} have been created yet.{% endblocktrans %}{% if has_add_permission %} Why not <a href="{{ add_url }}">{% trans 'add one' %}</a>?{% endif %}</p>
+            </div>
+        {% else %}
+            {% result_list cl %}
+        {% endif %}
+    {% endblock %}
+    </div>
+   
+    {% block pagination %}
+        {% if not no_items %}{% pagination cl %}{% endif %}
+    {% endblock %}
+</div>
+</div>
+{% endblock %}
