@@ -13,22 +13,22 @@ flexible listing pages for any model (or combination of models) that extend
 Wagtail's Page model, or that have been registered as a Snippet. They offer
 similar functionality to that of django's ModelAdmin class, allowing for:
 
-- control over what values are displayed (via _list_display_)
-- control over default ordering (via _ordering_)
-- customisable model-specific text search (via _search_fields_)
-- customisable filters (via _list_filter_)
+- control over what values are displayed (via **list_display**)
+- control over default ordering (via **ordering**)
+- customisable model-specific text search (via **search_fields**)
+- customisable filters (via **list_filter**)
 - ability for user to reorder results from the listing page
 
-NOTE: _list_display_ supports all the things that django's ModelAdmin does 
-(including _short_description_ and _admin_order_field_ on custom methods
+NOTE: **list_display** supports all the things that django's ModelAdmin does 
+(including **short_description** and **admin_order_field** on custom methods
 and properties), giving you lots of flexibility when it comes to output.
-[Read more about list_display in Django's official docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display). 
+[Read more about list_display in the django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display). 
 It should be a similar story for the other attributes mentioned above, but
 we haven't tested things thoroughly enough to say for sure.
 
-### It adds functionality, but doesn't take anything away
+### Adding functionality, not taking it away
 
-We don't interfere with what Wagtail does. We respect its permission system and other underlying functionality as fully as possible, and direct to its existing views to handle everything we possibly can. PageModelAdmin even relies on Page's _allowed_parent_page_types()_ and _allowed_subpage_types()_ methods for a lot of it's logic. 
+We don't interfere with what Wagtail does. We respect its permission system and other underlying functionality as fully as possible, and direct to its existing views to handle everything we possibly can. PageModelAdmin even relies on Page's **allowed_parent_page_types()** and **allowed_subpage_types()** methods for a lot of it's logic. 
 If you extend the Page model for your custom model (BlogPost/Event/Product/Whatever), you'll still be able to create and manage those Pages from the Explorer tree if that's the way you want to do things. Same goes for models registered as Snippets - they'll work exactly as they did before. This app just provides additional, customisable views, on top of what Wagtail already gives you. 
 
 ## How to install
