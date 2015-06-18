@@ -3,8 +3,8 @@
 While we don't disagree with the way Wagtail leads the user down it's 
 tree-oriented views for managing all 'Page' content, or the Snippet 
 functionality it offers for managing non-page content; we felt like we needed a
-little more flexibility when it comes to managing different kinds of content
-via it's CMS.
+little more flexibility when it comes to listing and grouping together
+different kinds of content via it's CMS.
 
 The classes provided by this app give you everything you need to create
 flexible listing pages for any model (or combination of models) that extend
