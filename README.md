@@ -1,6 +1,6 @@
 # What is wagtailmodeladmin?
 
-It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail) that allows you create seperate, highly customisable listing pages for any model that extend Wagtail's Page model, or that has been registered as a Snippet. It also adds customisable menu items to the admin menu, so that users can access them.
+It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail) that allows you create seperate, highly customisable listing pages for any model that extend Wagtail's Page model, or that has been registered as a Snippet. It also adds customisable menu items for each lisitng page you create, and adds them to the admin menu in the CMS (all via hooks provided by Wagtail).
 
 The classes offer similar functionality to that of django's ModelAdmin class when it comes to listing objects, allowing for:
 
