@@ -26,7 +26,7 @@ we haven't tested things thoroughly enough to say for sure.
 
 ## How to install
 
-1. Download the app and copy it to the directory where your other apps live
+1. Install the package using pip > **pip install git+git://github.com/ababic/wagtailmodeladmin**
 2. Add **wagtailmodeladmin** to **INSTALLED_APPS** in your project settings
 3. Add the **wagtailmodeladmin.middleware.ModelAdminMiddleware** class to **MIDDLEWARE_CLASSES** in your project settings (it should be fine at the end)
 4. Add a **wagtail_hooks.py** file to your app's folder and extend the PageModelAdmin, SnippetModelAdmin and AppModelAdmin classes to produce the desired effect
