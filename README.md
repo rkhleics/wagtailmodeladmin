@@ -1,5 +1,7 @@
 # What is wagtailmodeladmin?
 
+It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail).
+
 While we don't disagree with the way Wagtail leads the user down its 
 tree-oriented views for managing all 'Page' content, or the Snippet 
 functionality it offers for managing non-page content; we felt like we needed a
