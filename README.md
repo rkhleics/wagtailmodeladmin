@@ -4,9 +4,8 @@ It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagta
 
 While we don't disagree with the way Wagtail leads the user down its 
 tree-oriented views for managing all 'Page' content, or the Snippet 
-functionality it offers for managing non-page content; we felt like we needed a
-little more flexibility when it comes to displaying and grouping together
-content for custom apps in its CMS.
+functionality it offers for managing non-page content; we feel like we need a
+little more flexibility when it comes to displaying content for custom apps in the CMS.
 
 The classes provided by this app give you everything you need to create
 flexible listing pages for any model (or combination of models) that extend
