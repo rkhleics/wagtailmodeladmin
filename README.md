@@ -1,16 +1,8 @@
 # What is wagtailmodeladmin?
 
-It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail).
+It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail) that allows you create seperate, highly customisable listing pages for any model that extend Wagtail's Page model, or that has been registered as a Snippet. It also adds customisable menu items to the admin menu, so that users can access them.
 
-While we don't disagree with the way Wagtail leads the user down its 
-tree-oriented views for managing all 'Page' content, or the Snippet 
-functionality it offers for managing non-page content; we feel like we need a
-little more flexibility when it comes to displaying content for custom apps in the CMS.
-
-The classes provided by this app give you everything you need to create
-flexible listing pages for any model (or combination of models) that extend
-Wagtail's Page model, or that have been registered as a Snippet. They offer
-similar functionality to that of django's ModelAdmin class, allowing for:
+The classes offer similar functionality to that of django's ModelAdmin class when it comes to listing objects, allowing for:
 
 - control over what values are displayed (via **list_display**)
 - control over default ordering (via **ordering**)
@@ -28,7 +20,7 @@ we haven't tested things thoroughly enough to say for sure.
 ### Adding functionality, not taking it away
 
 We don't interfere with what Wagtail does. We respect its permission system and other underlying functionality as fully as possible, and direct to its existing views to handle everything we possibly can. PageModelAdmin even relies on Page's **allowed_parent_page_types()** and **allowed_subpage_types()** methods for a lot of it's logic. 
-If you extend the Page model for your custom model (BlogPost/Event/Product/Whatever), you'll still be able to create and manage those Pages from the Explorer tree if that's the way you want to do things. Same goes for models registered as Snippets - they'll work exactly as they did before. This app just provides additional, customisable views, on top of what Wagtail already gives you. 
+If you extend the Page model for your custom model (BlogPost/Event/Product/Whatever), you'll still be able to create and manage those Pages from the Explorer tree if that's the way you want to do things. The same goes for models registered as Snippets... that functionality stays completely untouched. This app just provides additional, customisable views, on top of what Wagtail already gives you. 
 
 ## How to install
 
