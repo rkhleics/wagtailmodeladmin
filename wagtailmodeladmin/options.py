@@ -6,7 +6,6 @@ from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
 from django.db.models.fields import FieldDoesNotExist
 from django.template.response import SimpleTemplateResponse, TemplateResponse
-from django.contrib import admin
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.admin.util import lookup_needs_distinct
 from django.contrib.admin.views.main import ChangeList
@@ -176,12 +175,13 @@ class ModelAdminBase(object):
                               allow_empty_first_page)
 
     def lookup_allowed(self, lookup, value):
+        from django.contrib.admin.widgets import url_params_from_lookup_dict
         model = self.model
         # Check FKey lookups that are allowed, so that popups produced by
         # ForeignKeyRawIdWidget, on the basis of ForeignKey.limit_choices_to,
         # are allowed to work.
         for l in model._meta.related_fkey_lookups:
-            for k, v in admin.widgets.url_params_from_lookup_dict(l).items():
+            for k, v in url_params_from_lookup_dict(l).items():
                 if k == lookup and v == value:
                     return True
 
