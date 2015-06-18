@@ -64,6 +64,10 @@ class ModelAdminBase(object):
         self.opts = self.model._meta
 
     @cached_property
+    def app_label(self):
+        return force_text(self.opts.app_label)
+
+    @cached_property
     def model_name(self):
         return force_text(self.opts.verbose_name)
 
@@ -266,8 +270,26 @@ class ModelAdminBase(object):
             self.get_list_url_definition(),
         ]
 
+    def get_base_context_data(self, request):
+        if self.parent:
+            app_label = self.parent.get_menu_label().lower()
+        else:
+            app_label = self.app_label
+
+        return {
+            'app_label': app_label,
+            'module_name': self.model_name,
+            'module_name_plural': self.model_name_plural,
+            'module_icon': self.get_menu_icon(),
+            'add_url': self.get_add_url(),
+            'list_url': self.get_list_url(),
+        }
+
+    def get_list_view_context_data(self, request):
+        return self.get_base_context_data(request)
+
     @csrf_protect_m
-    def wagtailadmin_list_view(self, request, extra_context=None):
+    def wagtailadmin_list_view(self, request):
         """
         For now, this is a direct copy of changelist_view from ModelAdmin,
         rendering to a different set of templates.
@@ -305,28 +327,22 @@ class ModelAdminBase(object):
             '%(total_count)s selected',
             'All %(total_count)s selected', cl.result_count)
 
-        context = dict(
-            module_name=self.model_name,
-            module_name_plural=self.model_name_plural,
-            module_icon=self.get_menu_icon(),
-            selection_note=_('0 of %(cnt)s selected') % {
+        context_data = self.get_list_view_context_data(request)
+        context_data.update({
+            'selection_note': _('0 of %(cnt)s selected') % {
                 'cnt': len(cl.result_list)},
-            selection_note_all=selection_note_all % {
+            'selection_note_all': selection_note_all % {
                 'total_count': cl.result_count},
-            title=cl.title,
-            no_items=bool(not self.model.objects.all().count()),
-            to_field=cl.to_field,
-            cl=cl,
-            opts=cl.opts,
-            preserved_filters=self.get_preserved_filters(request),
-            add_url=self.get_add_url(),
-            list_url=self.get_list_url(),
-            has_add_permission=self.has_add_permission(request),
-        )
-        context.update(extra_context or {})
+            'title': cl.title,
+            'no_items': bool(not self.model.objects.all().count()),
+            'to_field': cl.to_field,
+            'cl': cl,
+            'preserved_filters': self.get_preserved_filters(request),
+            'has_add_permission': self.has_add_permission(request),
+        })
 
         return TemplateResponse(request, self.get_wagtailadmin_list_template(),
-                                context)
+                                context_data)
 
     def get_wagtailadmin_list_template(self):
         """
@@ -455,8 +471,11 @@ class PageModelAdmin(ModelAdminBase):
             return True
         return False
 
+    def get_add_view_context_data(self, request):
+        return self.get_base_context_data(request)
+
     @csrf_protect_m
-    def wagtailadmin_add_view(self, request, extra_context=None):
+    def wagtailadmin_add_view(self, request):
         """
         Because most of our models extend wagtail's Page model, when adding
         a new object, we need to know where in the tree to add a new page.
@@ -484,13 +503,6 @@ class PageModelAdmin(ModelAdminBase):
             parent = valid_parents[0]
             return self.redirect_to_page_create_view(parent)
 
-        context_data = {
-            'cl': self,
-            'module_name': self.model_name,
-            'module_name_plural': self.model_name_plural,
-            'module_icon': self.get_menu_icon(),
-        }
-
         class ParentChooserForm(forms.Form):
             parent_page = forms.ModelChoiceField(
                 required=True,
@@ -505,9 +517,9 @@ class PageModelAdmin(ModelAdminBase):
         if form.is_valid():
             parent = form.cleaned_data['parent_page']
             return self.redirect_to_page_create_view(parent)
-        context_data.update({'form': form})
 
-        context_data.update(extra_context or {})
+        context_data = self.get_add_view_context_data(request)
+        context_data.update({'form': form})
 
         return TemplateResponse(
             request, 'wagtailmodeladmin/choose_parent.html', context_data)
