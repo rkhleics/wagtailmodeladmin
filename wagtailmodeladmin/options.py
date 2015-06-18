@@ -6,9 +6,6 @@ from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
 from django.db.models.fields import FieldDoesNotExist
 from django.template.response import SimpleTemplateResponse, TemplateResponse
-from django.contrib.admin.options import IncorrectLookupParameters
-from django.contrib.admin.util import lookup_needs_distinct
-from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth import get_permission_codename
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
@@ -30,7 +27,6 @@ from wagtail.wagtailcore.models import Page
 from .menus import (
     PageModelMenuItem, SnippetModelMenuItem, ModelAdminSubmenuMenuItem,
     SubMenu)
-from .views import PageModelAdminChangeList, SnippetModelAdminChangeList
 
 
 class ModelAdminBase(object):
@@ -123,6 +119,8 @@ class ModelAdminBase(object):
         Returns a tuple containing a queryset to implement the search,
         and a boolean indicating if the results may contain duplicates.
         """
+        from django.contrib.admin.util import lookup_needs_distinct
+
         # Apply keyword searches.
         def construct_search(field_name):
             if field_name.startswith('^'):
@@ -242,6 +240,7 @@ class ModelAdminBase(object):
         """
         Returns the ChangeList class for use on the changelist page.
         """
+        from django.contrib.admin.views.main import ChangeList
         return ChangeList
 
     def get_list_url_definition(self):
@@ -295,6 +294,7 @@ class ModelAdminBase(object):
         rendering to a different set of templates.
         """
         from django.contrib.admin.views.main import ERROR_FLAG
+        from django.contrib.admin.options import IncorrectLookupParameters
 
         list_display = self.get_list_display(request)
         list_filter = self.get_list_filter(request)
@@ -418,6 +418,7 @@ class PageModelAdmin(ModelAdminBase):
             '%s_%s_wagtailadmin_add' % self.get_model_string_tuple())
 
     def get_changelist(self, request, **kwargs):
+        from wagtailmodeladmin.views import PageModelAdminChangeList
         return PageModelAdminChangeList
 
     def get_admin_urls_for_registration(self):
@@ -556,6 +557,7 @@ class SnippetModelAdmin(ModelAdminBase):
                        args=self.get_model_string_tuple())
 
     def get_changelist(self, request, **kwargs):
+        from wagtailmodeladmin.views import SnippetModelAdminChangeList
         return SnippetModelAdminChangeList
 
 
