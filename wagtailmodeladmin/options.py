@@ -6,7 +6,7 @@ from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
 from django.db.models.fields import FieldDoesNotExist
 from django.template.response import SimpleTemplateResponse, TemplateResponse
-from django.contrib.auth import get_permission_codename
+
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied, ImproperlyConfigured
@@ -548,6 +548,7 @@ class SnippetModelAdmin(ModelAdminBase):
             self.get_menu_icon(), order or self.get_menu_order())
 
     def has_add_permission(self, request):
+        from django.contrib.auth import get_permission_codename
         opts = self.opts
         codename = get_permission_codename('add', opts)
         return request.user.has_perm("%s.%s" % (opts.app_label, codename))
