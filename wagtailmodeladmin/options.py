@@ -6,7 +6,11 @@ from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
 from django.db.models.fields import FieldDoesNotExist
 from django.template.response import SimpleTemplateResponse, TemplateResponse
-
+from django.contrib.admin import widgets
+from django.contrib.admin.options import IncorrectLookupParameters
+from django.contrib.admin.util import lookup_needs_distinct
+from django.contrib.admin.views.main import ChangeList
+from django.contrib.auth import get_permission_codename
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied, ImproperlyConfigured
@@ -27,6 +31,7 @@ from wagtail.wagtailcore.models import Page
 from .menus import (
     PageModelMenuItem, SnippetModelMenuItem, ModelAdminSubmenuMenuItem,
     SubMenu)
+from .views import PageModelAdminChangeList, SnippetModelAdminChangeList
 
 
 class ModelAdminBase(object):
@@ -119,8 +124,6 @@ class ModelAdminBase(object):
         Returns a tuple containing a queryset to implement the search,
         and a boolean indicating if the results may contain duplicates.
         """
-        from django.contrib.admin.util import lookup_needs_distinct
-
         # Apply keyword searches.
         def construct_search(field_name):
             if field_name.startswith('^'):
@@ -173,13 +176,12 @@ class ModelAdminBase(object):
                               allow_empty_first_page)
 
     def lookup_allowed(self, lookup, value):
-        from django.contrib.admin.widgets import url_params_from_lookup_dict
         model = self.model
         # Check FKey lookups that are allowed, so that popups produced by
         # ForeignKeyRawIdWidget, on the basis of ForeignKey.limit_choices_to,
         # are allowed to work.
         for l in model._meta.related_fkey_lookups:
-            for k, v in url_params_from_lookup_dict(l).items():
+            for k, v in widgets.url_params_from_lookup_dict(l).items():
                 if k == lookup and v == value:
                     return True
 
@@ -240,7 +242,6 @@ class ModelAdminBase(object):
         """
         Returns the ChangeList class for use on the changelist page.
         """
-        from django.contrib.admin.views.main import ChangeList
         return ChangeList
 
     def get_list_url_definition(self):
@@ -294,7 +295,6 @@ class ModelAdminBase(object):
         rendering to a different set of templates.
         """
         from django.contrib.admin.views.main import ERROR_FLAG
-        from django.contrib.admin.options import IncorrectLookupParameters
 
         list_display = self.get_list_display(request)
         list_filter = self.get_list_filter(request)
@@ -418,7 +418,6 @@ class PageModelAdmin(ModelAdminBase):
             '%s_%s_wagtailadmin_add' % self.get_model_string_tuple())
 
     def get_changelist(self, request, **kwargs):
-        from wagtailmodeladmin.views import PageModelAdminChangeList
         return PageModelAdminChangeList
 
     def get_admin_urls_for_registration(self):
@@ -548,7 +547,6 @@ class SnippetModelAdmin(ModelAdminBase):
             self.get_menu_icon(), order or self.get_menu_order())
 
     def has_add_permission(self, request):
-        from django.contrib.auth import get_permission_codename
         opts = self.opts
         codename = get_permission_codename('add', opts)
         return request.user.has_perm("%s.%s" % (opts.app_label, codename))
@@ -558,7 +556,6 @@ class SnippetModelAdmin(ModelAdminBase):
                        args=self.get_model_string_tuple())
 
     def get_changelist(self, request, **kwargs):
-        from wagtailmodeladmin.views import SnippetModelAdminChangeList
         return SnippetModelAdminChangeList
 
 

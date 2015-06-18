@@ -42,7 +42,7 @@ in Wagtail's CMS so that you can get to it.
 
 ```python
 from wagtail.wagtailcore import hooks
-from wagtailmodeladmin import PageModelAdmin
+from wagtailmodeladmin.options import PageModelAdmin
 from .models import MyPageModel
 
 
@@ -84,10 +84,10 @@ allows you to group them all together nicely.
 
 ```python
 from wagtail.wagtailcore import hooks
-from wagtailmodeladmin import (PageModelAdmin, SnippetModelAdmin,
-                                 AppModelAdmin)
-from .models import (MyPageModel, MyOtherPageModel, MySnippetModel,
-                     MyOtherSnippetModel)
+from wagtailmodeladmin.options import (
+    PageModelAdmin, SnippetModelAdmin, AppModelAdmin)
+from .models import (
+    MyPageModel, MyOtherPageModel, MySnippetModel, MyOtherSnippetModel)
 
 
 class MyPageModelAdmin(PageModelAdmin):
