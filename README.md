@@ -128,6 +128,7 @@ class MyOtherSnippetModelAdmin(SnippetModelAdmin):
 
 
 class MyAppModelAdmin(AppModelAdmin):
+    menu_text = 'My App'
     menu_icon = 'icon-folder-open-inverse' # change as required
     menu_order = 200 # will put in 3rd place (000 being 1st, 100 2nd)
     pagemodeladmins = (MyPageModelAdmin, MyOtherPageModelAdmin)
