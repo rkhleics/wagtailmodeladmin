@@ -23,6 +23,6 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     ],
     install_requires=[
-        'wagtail>=1.0',
+        'wagtail>=0.8.7',
     ]
 )
