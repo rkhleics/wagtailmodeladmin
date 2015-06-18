@@ -26,7 +26,7 @@ we haven't tested things thoroughly enough to say for sure.
 
 ### It adds functionality, but doesn't taking anything away
 
-We don't interfere what Wagtail does. We resepct its permission system and other underlying functionality as fully as possible, and direct to its existing views to handle everything we possibly can. PageModelAdmin even relies on Page's _allowed_parent_page_types()_ and _allowed_subpage_types()_ methods for a lot of it's logic. 
+We don't interfere with what Wagtail does. We resepct its permission system and other underlying functionality as fully as possible, and direct to its existing views to handle everything we possibly can. PageModelAdmin even relies on Page's _allowed_parent_page_types()_ and _allowed_subpage_types()_ methods for a lot of it's logic. 
 If you extend the Page model for your custom model (BlogPost/Event/Product/Whatever), you'll still be able to create and manage those Pages from the Explorer tree if that's the way you want to do things. Same goes for models registered as Snippets - they'll work exactly as they did before. This app just provides additional, customisable views, on top of what Wagtail already gives you. 
 
 ## How to install
