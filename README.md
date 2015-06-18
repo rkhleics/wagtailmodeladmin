@@ -78,6 +78,11 @@ def register_admin_menu_item():
     return hook_instance.get_menu_item()
 ```
 
+The Wagtail CMS menu would look something like this:
+
+![Simple example menu preview](http://i.imgur.com/Ztb2aYf.png)
+
+
 ## A more complicated example
 
 You have an app with several models that you want to show grouped together in
@@ -151,6 +156,10 @@ def register_admin_urls():
 def register_admin_menu_item():
     return hook_instance.get_menu_item()
 ```
+
+The Wagtail CMS menu would look something like this:
+
+![Complex example menu preview](http://i.imgur.com/skxP6ek.png)
 
 ## Notes
 
