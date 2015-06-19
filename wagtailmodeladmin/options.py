@@ -15,7 +15,6 @@ from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied, ImproperlyConfigured
 from django.http import HttpResponseRedirect
-from django.utils.http import urlencode
 from django import forms
 
 
@@ -24,6 +23,7 @@ from django.utils.translation import ugettext as _, ungettext
 from django.utils.encoding import force_text
 from django.utils.decorators import method_decorator
 from django.utils.functional import cached_property
+from django.utils.http import urlencode
 csrf_protect_m = method_decorator(csrf_protect)
 
 from wagtail.wagtailcore.models import Page
@@ -50,10 +50,11 @@ class ModelAdminBase(object):
     list_max_show_all = 200
     search_fields = ()
     ordering = None
+    parent = None
     paginator = Paginator
-    preserve_filters = True
+    preserve_filters = False
 
-    def __init__(self):
+    def __init__(self, parent=None):
         """
         Don't allow initialisation unless self.model is set to a valid model
         """
@@ -62,6 +63,7 @@ class ModelAdminBase(object):
                 u"The model attribute on your '%s' class must be set, and "
                 "must be a valid django model." % self.__class__.__name__)
         self.opts = self.model._meta
+        self.parent = parent
 
     @cached_property
     def app_label(self):
@@ -150,25 +152,6 @@ class ModelAdminBase(object):
                         break
 
         return queryset, use_distinct
-
-    def get_preserved_filters(self, request):
-        """
-        Returns the preserved filters querystring.
-        """
-        match = request.resolver_match
-        if self.preserve_filters and match:
-            opts = self.model._meta
-            current_url = '%s:%s' % (match.app_name, match.url_name)
-            changelist_url = 'admin:%s_%s_changelist' % (opts.app_label,
-                                                         opts.model_name)
-            if current_url == changelist_url:
-                preserved_filters = request.GET.urlencode()
-            else:
-                preserved_filters = request.GET.get('_changelist_filters')
-
-            if preserved_filters:
-                return urlencode({'_changelist_filters': preserved_filters})
-        return ''
 
     def get_paginator(self, request, queryset, per_page, orphans=0,
                       allow_empty_first_page=True):
@@ -270,6 +253,24 @@ class ModelAdminBase(object):
             self.get_list_url_definition(),
         ]
 
+    def get_preserved_filters(self, request):
+        """
+        Returns the preserved filters querystring. Not completely sure how
+        well this functionality works for this project, but have brought it in
+        from ModelAdmin, just in case.
+        """
+        match = request.resolver_match
+        list_url = '%s_%s_wagtailadmin_list' % self.get_model_string_tuple()
+        if self.preserve_filters and match:
+            if match.url_name == list_url:
+                preserved_filters = request.GET.urlencode()
+            else:
+                preserved_filters = request.GET.get('_changelist_filters')
+
+            if preserved_filters:
+                return urlencode({'_changelist_filters': preserved_filters})
+        return ''
+
     def get_base_context_data(self, request):
         if self.parent:
             app_label = self.parent.get_menu_label().lower()
@@ -292,7 +293,8 @@ class ModelAdminBase(object):
     def wagtailadmin_list_view(self, request):
         """
         For now, this is a direct copy of changelist_view from ModelAdmin,
-        rendering to a different set of templates.
+        adding a few additional things to the context, and rendering to a
+        different template.
         """
         from django.contrib.admin.views.main import ERROR_FLAG
 
@@ -347,7 +349,7 @@ class ModelAdminBase(object):
     def get_wagtailadmin_list_template(self):
         """
         Returns a list of templates to look for in order to render the
-        wagtailadmin_list_view (above)
+        wagtailadmin_list_view.
         """
         opts = self.model._meta
         return [
@@ -365,14 +367,11 @@ class PageModelAdmin(ModelAdminBase):
     """
     menu_icon = 'icon-doc-full-inverse'
 
-    def __init__(self, appmodeladmin=None):
-        super(PageModelAdmin, self).__init__()
+    def __init__(self, parent=None):
+        super(PageModelAdmin, self).__init__(parent)
         """
-        If instantiated by a AppModelAdmin instance, we want to keep a
-        reference to that instance by setting the parent attribute. We also
-        do a quick check to ensure the model does extend Page
+        We just want to check to ensure model extends Page
         """
-        self.parent = appmodeladmin
         if not issubclass(self.model, Page):
             raise ImproperlyConfigured(
                 u"'%s' model does not subclass wagtail's Page model. The "
@@ -532,9 +531,12 @@ class SnippetModelAdmin(ModelAdminBase):
     """
     menu_icon = 'icon-snippet'
 
-    def __init__(self, appmodeladmin=None):
-        super(SnippetModelAdmin, self).__init__()
-        self.parent = appmodeladmin
+    def __init__(self, parent=None):
+        super(SnippetModelAdmin, self).__init__(parent)
+        """
+        TO-DO: Check that model is registered as a Snippet.
+        """
+        pass
 
     def get_menu_item(self, order=None):
         """
