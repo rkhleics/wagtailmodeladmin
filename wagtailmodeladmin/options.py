@@ -53,6 +53,7 @@ class ModelAdminBase(object):
     parent = None
     paginator = Paginator
     preserve_filters = False
+    show_full_result_count = True
 
     def __init__(self, parent=None):
         """
