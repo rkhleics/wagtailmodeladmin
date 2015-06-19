@@ -1,7 +1,7 @@
 import operator
 from django.db import models
 from django.db.models import Model
-from django.db.models.related import RelatedObject
+from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
 from django.db.models.fields import FieldDoesNotExist
@@ -194,7 +194,7 @@ class ModelAdminBase(object):
                     return True
                 model = field.rel.to
                 rel_name = field.rel.get_related_field().name
-            elif isinstance(field, RelatedObject):
+            elif isinstance(field, ForeignObjectRel):
                 model = field.model
                 rel_name = model._meta.pk.name
             else:
