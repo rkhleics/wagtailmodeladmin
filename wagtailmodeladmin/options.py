@@ -539,6 +539,21 @@ class SnippetModelAdmin(ModelAdminBase):
         """
         pass
 
+    def construct_main_menu(self, request, menu_items):
+        """
+        Utilised by wagtail's 'construct_main_menu' hook to set/unset a session
+        variable that is used by ModelAdminMiddleware to redirect to the
+        correct listing page after creating/editing/deleting an object
+        """
+        if request.path == self.get_list_url():
+            request.session['return_to_list_url'] = self.get_list_url()
+        if request.resolver_match.url_name == 'wagtailsnippets_list':
+            try:
+                del request.session['return_to_list_url']
+            except KeyError:
+                pass
+        return menu_items
+
     def get_menu_item(self, order=None):
         """
         Utilised by wagtail's 'register_menu_item' hook to create a menu
