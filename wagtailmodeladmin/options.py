@@ -474,6 +474,15 @@ class PageModelAdmin(ModelAdminBase):
     def get_add_view_context_data(self, request):
         return self.get_base_context_data(request)
 
+    def get_list_view_context_data(self, request):
+        context_data = super(PageModelAdmin, self).get_list_view_context_data(request)
+        valid_parent_count = self.get_valid_parent_pages(request).count()
+        context_data.update({
+            'no_valid_parents': not valid_parent_count,
+            'required_parent_types': self.model.allowed_parent_page_types(),
+        })
+        return context_data
+
     @csrf_protect_m
     def wagtailadmin_add_view(self, request):
         """
