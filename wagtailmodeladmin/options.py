@@ -360,6 +360,22 @@ class ModelAdminBase(object):
             'wagtailmodeladmin/change_list.html',
         ]
 
+    def construct_main_menu(self, request, menu_items):
+        """
+        Utilised by wagtail's 'construct_main_menu' hook to set/unset a session
+        variable that is used by ModelAdminMiddleware to redirect to the
+        correct listing page after creating/editing/deleting an object
+        """
+        if request.path == self.get_list_url():
+            request.session['return_to_list_url'] = self.get_list_url()
+        if request.resolver_match.url_name in ['wagtailadmin_explore',
+                                               'wagtailsnippets_list']:
+            try:
+                del request.session['return_to_list_url']
+            except KeyError:
+                pass
+        return menu_items
+
 
 class PageModelAdmin(ModelAdminBase):
     """
@@ -378,21 +394,6 @@ class PageModelAdmin(ModelAdminBase):
                 u"'%s' model does not subclass wagtail's Page model. The "
                 "PageModelAdmin class can only be used for models "
                 "extend subclass Page." % self.model())
-
-    def construct_main_menu(self, request, menu_items):
-        """
-        Utilised by wagtail's 'construct_main_menu' hook to set/unset a session
-        variable that is used by ModelAdminMiddleware to redirect to the
-        correct listing page after creating/editing/deleting an object
-        """
-        if request.path == self.get_list_url():
-            request.session['return_to_list_url'] = self.get_list_url()
-        if request.resolver_match.url_name == 'wagtailadmin_explore':
-            try:
-                del request.session['return_to_list_url']
-            except KeyError:
-                pass
-        return menu_items
 
     def get_menu_item(self, order=None):
         """
@@ -547,21 +548,6 @@ class SnippetModelAdmin(ModelAdminBase):
         TO-DO: Check that model is registered as a Snippet.
         """
         pass
-
-    def construct_main_menu(self, request, menu_items):
-        """
-        Utilised by wagtail's 'construct_main_menu' hook to set/unset a session
-        variable that is used by ModelAdminMiddleware to redirect to the
-        correct listing page after creating/editing/deleting an object
-        """
-        if request.path == self.get_list_url():
-            request.session['return_to_list_url'] = self.get_list_url()
-        if request.resolver_match.url_name == 'wagtailsnippets_list':
-            try:
-                del request.session['return_to_list_url']
-            except KeyError:
-                pass
-        return menu_items
 
     def get_menu_item(self, order=None):
         """
