@@ -7,17 +7,17 @@
 {{ block.super }}
     {% compress css %}
         <link rel="stylesheet" type="text/css" href="{% static "wagtailmodeladmin/css/change_list.css" %}" />
-        <style type="text/css">
-            .nav-main li.menu-{{ module_name_plural }} {
-                background: #1a1a1a;
-                text-shadow: -1px -1px 0px rgba(0, 0, 0, 0.3);
-            }
-            .nav-main li.menu-{{ module_name_plural }} > a {
-                border-left-color: #f37e77;
-                color: white;
-            }
-        </style>
     {% endcompress %}
+    <style type="text/css">
+        .nav-main li.menu-{{ module_name_plural }} {
+            background: #1a1a1a;
+            text-shadow: -1px -1px 0px rgba(0, 0, 0, 0.3);
+        }
+        .nav-main li.menu-{{ module_name_plural }} > a {
+            border-left-color: #f37e77;
+            color: white;
+        }
+    </style>
 {% endblock %}
 
 {% block extra_js %}
