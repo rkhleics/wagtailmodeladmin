@@ -1,4 +1,4 @@
-from urlparse import urlparse
+from django.utils.six.moves.urllib.parse import urlparse
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import resolve, Resolver404
 
