@@ -1,4 +1,6 @@
 import operator
+from functools import reduce
+
 from django.db import models
 from django.db.models import Model
 from django.db.models.fields.related import ForeignObjectRel
@@ -15,9 +17,7 @@ from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied, ImproperlyConfigured
 from django.http import HttpResponseRedirect
-from django import forms
-
-
+from django.forms import Form, ModelChoiceField
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _, ungettext
 from django.utils.encoding import force_text
@@ -513,8 +513,8 @@ class PageModelAdmin(ModelAdminBase):
             parent = valid_parents[0]
             return self.redirect_to_page_create_view(parent)
 
-        class ParentChooserForm(forms.Form):
-            parent_page = forms.ModelChoiceField(
+        class ParentChooserForm(Form):
+            parent_page = ModelChoiceField(
                 required=True,
                 label=_(
                     'Please choose a parent page for your %(name)s to sit '
