@@ -1,8 +1,8 @@
 # What is wagtailmodeladmin?
 
-It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail) that allows you create seperate, highly customisable listing pages for any model that extend Wagtail's Page model, or that has been registered as a Snippet. It also adds customisable menu items for each lisitng page you create, and adds them to the admin menu in the CMS (all via hooks provided by Wagtail).
+It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail) that allows you create separate, highly customisable listing pages for any model that extend Wagtail's Page model, or that has been registered as a Snippet. It also adds customisable menu items for each listing page you create, and adds them to the admin menu in the CMS (all via hooks provided by Wagtail).
 
-The classes offer similar functionality to that of django's ModelAdmin class when it comes to listing objects, allowing for:
+The classes offer similar functionality to that of Django's ModelAdmin class when it comes to listing objects, allowing for:
 
 - control over what values are displayed (via **list_display**)
 - control over default ordering (via **ordering**)
@@ -10,7 +10,7 @@ The classes offer similar functionality to that of django's ModelAdmin class whe
 - customisable filters (via **list_filter**)
 - ability for user to reorder results from the listing page
 
-NOTE: **list_display** supports all the things that django's ModelAdmin does 
+NOTE: **list_display** supports all the things that Django's ModelAdmin does 
 (including **short_description** and **admin_order_field** on custom methods
 and properties), giving you lots of flexibility when it comes to output.
 [Read more about list_display in the django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display). 
@@ -19,15 +19,15 @@ we haven't tested things thoroughly enough to say for sure.
 
 ### Adding functionality, not taking it away
 
-We don't interfere with what Wagtail does. We respect its permission system and other underlying functionality as fully as possible, and direct to its existing views to handle everything we possibly can. PageModelAdmin even relies on Page's **allowed_parent_page_types()** and **allowed_subpage_types()** methods for a lot of it's logic. 
+We don't interfere with what Wagtail does. We respect its permission system and other underlying functionality as fully as possible, and direct to its existing views to handle everything we possibly can. PageModelAdmin even relies on Page's **allowed_parent_page_types()** and **allowed_subpage_types()** methods for a lot of its logic. 
 If you extend the Page model for your custom model (BlogPost/Event/Product/Whatever), you'll still be able to create and manage those Pages from the Explorer tree if that's the way you want to do things. The same goes for models registered as Snippets... that functionality stays completely untouched. This app just provides additional, customisable views, on top of what Wagtail already gives you. 
 
 ## How to install
 
-1. Install the package using pip: **pip install git+git://github.com/ababic/wagtailmodeladmin**
-2. Add **wagtailmodeladmin** to **INSTALLED_APPS** in your project settings
-3. Add the **wagtailmodeladmin.middleware.ModelAdminMiddleware** class to **MIDDLEWARE_CLASSES** in your project settings (it should be fine at the end)
-4. Add a **wagtail_hooks.py** file to your app's folder and extend the PageModelAdmin, SnippetModelAdmin and AppModelAdmin classes to produce the desired effect
+1. Install the package using pip: `pip install git+git://github.com/ababic/wagtailmodeladmin`
+2. Add `wagtailmodeladmin` to `INSTALLED_APPS` in your project settings
+3. Add the `wagtailmodeladmin.middleware.ModelAdminMiddleware` class to `MIDDLEWARE_CLASSES` in your project settings (it should be fine at the end)
+4. Add a `wagtail_hooks.py` file to your app's folder and extend the PageModelAdmin, SnippetModelAdmin and AppModelAdmin classes to produce the desired effect
 
 ## A simple example
 
