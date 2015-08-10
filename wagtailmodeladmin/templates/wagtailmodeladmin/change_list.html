@@ -4,9 +4,9 @@
 {% block titletag %}{{ title }}{% endblock %}
 
 {% block css %}
-{{ block.super }}
+    {{ block.super }}
     {% compress css %}
-        <link rel="stylesheet" type="text/css" href="{% static "wagtailmodeladmin/css/change_list.css" %}" />
+        {{ media.css }}
     {% endcompress %}
     <style type="text/css">
         .nav-main li.menu-{{ module_name_plural }} {

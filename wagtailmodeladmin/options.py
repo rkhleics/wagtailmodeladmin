@@ -17,7 +17,7 @@ from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied, ImproperlyConfigured
 from django.http import HttpResponseRedirect
-from django.forms import Form, ModelChoiceField
+from django.forms import Form, Media, ModelChoiceField
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _, ungettext
 from django.utils.encoding import force_text
@@ -290,6 +290,13 @@ class ModelAdminBase(object):
     def get_list_view_context_data(self, request):
         return self.get_base_context_data(request)
 
+    def get_list_view_media(self, request):
+        return Media(
+            css={
+                'all': ('wagtailmodeladmin/css/change_list.css',)
+            },
+        )
+
     @csrf_protect_m
     def wagtailadmin_list_view(self, request):
         """
@@ -342,6 +349,7 @@ class ModelAdminBase(object):
             'cl': cl,
             'preserved_filters': self.get_preserved_filters(request),
             'has_add_permission': self.has_add_permission(request),
+            'media': self.get_list_view_media(request),
         })
 
         return TemplateResponse(request, self.get_wagtailadmin_list_template(),
@@ -472,8 +480,19 @@ class PageModelAdmin(ModelAdminBase):
             return True
         return False
 
+    def get_add_view_media(self, request):
+        return Media(
+            css={
+                'all': ('wagtailmodeladmin/css/choose_parent.css',)
+            },
+        )
+
     def get_add_view_context_data(self, request):
-        return self.get_base_context_data(request)
+        context_data = self.get_base_context_data(request)
+        context_data.update({
+            'media': self.get_add_view_media(),
+        })
+        return context_data
 
     def get_list_view_context_data(self, request):
         context_data = super(PageModelAdmin, self).get_list_view_context_data(request)

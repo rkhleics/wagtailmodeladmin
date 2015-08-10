@@ -6,7 +6,6 @@
 {% block css %}
     {{ block.super }}
     {% compress css %}
-        <link rel="stylesheet" type="text/css" href="{% static "wagtailmodeladmin/css/choose_parent.css" %}" />
         {{ media.css }}
     {% endcompress %}
     <style type="text/css">
