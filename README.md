@@ -27,7 +27,7 @@ If you extend the Page model for your custom model (BlogPost/Event/Product/Whate
 1. Install the package using pip: `pip install git+git://github.com/ababic/wagtailmodeladmin`
 2. Add `wagtailmodeladmin` to `INSTALLED_APPS` in your project settings
 3. Add the `wagtailmodeladmin.middleware.ModelAdminMiddleware` class to `MIDDLEWARE_CLASSES` in your project settings (it should be fine at the end)
-4. Add a `wagtail_hooks.py` file to your app's folder and extend the PageModelAdmin, SnippetModelAdmin and AppModelAdmin classes to produce the desired effect
+4. Add a `wagtail_hooks.py` file to your app's folder and extend the `PageModelAdmin`, `SnippetModelAdmin` and `AppModelAdmin` classes to produce the desired effect
 
 ## A simple example
 
@@ -158,6 +158,26 @@ def register_admin_menu_item():
 The Wagtail CMS menu would look something like this:
 
 ![Complex example menu preview](http://i.imgur.com/skxP6ek.png)
+
+## Customising wagtailmodeladmin
+
+### Want to use your own list page template?
+
+That's easy. `PageModelAdmin` and `SnippetModelAdmin` both look for custom list templates within your apps before resorting to the default. The order of preference is when finding a template is:
+
+- wagtailmodeladmin/`{{ app_label }}`/`{{ model_name }}`/change_list.html
+- wagtailmodeladmin/`{{ model_name }}`/change_list.html
+- wagtailmodeladmin/change_list.html (default)
+
+Or if that doesn't fit your structure, you can override the `get_wagtailadmin_list_template` method on your class.
+
+### Want to add your own CSS or Javascript?
+
+If you're familiar with extending class methods, you should find it easy to extend the `get_list_view_media` and `get_add_view_media` (PageModelAdmin only) methods on your class to provide your own Media class. If you're unfamiliar with using Media classes, the following Django docs article should help: https://docs.djangoproject.com/en/1.8/topics/forms/media/#media-as-a-dynamic-property
+
+### Want to add extra things to the context?
+
+If you're familiar with extending class methods, this is easy to achieve by extending the `get_base_context_data`, `get_list_view_context_data` and `get_add_view_context_data` methods on your class.
 
 ## Notes
 
