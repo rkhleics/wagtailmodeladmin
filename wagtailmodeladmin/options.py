@@ -62,7 +62,7 @@ class ModelAdminBase(object):
         if not self.model or not issubclass(self.model, Model):
             raise ImproperlyConfigured(
                 u"The model attribute on your '%s' class must be set, and "
-                "must be a valid django model." % self.__class__.__name__)
+                "must be a valid Django model." % self.__class__.__name__)
         self.opts = self.model._meta
         self.parent = parent
 
@@ -399,13 +399,13 @@ class PageModelAdmin(ModelAdminBase):
         """
         if not issubclass(self.model, Page):
             raise ImproperlyConfigured(
-                u"'%s' model does not subclass wagtail's Page model. The "
+                u"'%s' model does not subclass Wagtail's Page model. The "
                 "PageModelAdmin class can only be used for models "
                 "extend subclass Page." % self.model())
 
     def get_menu_item(self, order=None):
         """
-        Utilised by wagtail's 'register_menu_item' hook to create a menu item
+        Utilised by Wagtail's 'register_menu_item' hook to create a menu item
         for our model's listing page, or can be called by an AppModelAdmin
         instance when getting menu items to include in it's SubMenu
         """
@@ -431,7 +431,7 @@ class PageModelAdmin(ModelAdminBase):
 
     def get_admin_urls_for_registration(self):
         """
-        Utilised by wagtail's 'register_admin_urls' hook to register urls for
+        Utilised by Wagtail's 'register_admin_urls' hook to register urls for
         our listing and add pages
         """
         urls = super(PageModelAdmin, self).get_admin_urls_for_registration()
@@ -506,7 +506,7 @@ class PageModelAdmin(ModelAdminBase):
     @csrf_protect_m
     def wagtailadmin_add_view(self, request):
         """
-        Because most of our models extend wagtail's Page model, when adding
+        Because most of our models extend Wagtail's Page model, when adding
         a new object, we need to know where in the tree to add a new page.
 
         The aim of this view is to locate a suitable parent page for the new
@@ -514,7 +514,7 @@ class PageModelAdmin(ModelAdminBase):
 
         If there are no suitable parent pages, we deny permission.
 
-        If there is a single suitable parent, redirect to wagtails
+        If there is a single suitable parent, redirect to Wagtail's
         'wagtailadmin_pages_create' view, with the suitable parent as as the
         new pages parent.
 
@@ -570,7 +570,7 @@ class SnippetModelAdmin(ModelAdminBase):
 
     def get_menu_item(self, order=None):
         """
-        Utilised by wagtail's 'register_menu_item' hook to create a menu
+        Utilised by Wagtail's 'register_menu_item' hook to create a menu
         item for our model's listing page, or can be called by an AppModelAdmin
         instance when getting menu items to include in it's SubMenu
         """
@@ -643,7 +643,7 @@ class AppModelAdmin(object):
 
     def construct_main_menu(self, request, menu_items):
         """
-        Utilised by wagtail's 'construct_main_menu' hook to set/unset a session
+        Utilised by Wagtail's 'construct_main_menu' hook to set/unset a session
         variable that helps us redirect to the correct listing page after
         creating/editing/deleting an object
         """
@@ -659,7 +659,7 @@ class AppModelAdmin(object):
 
     def get_menu_item(self):
         """
-        Utilised by wagtail's 'register_menu_item' hook to create a menu
+        Utilised by Wagtail's 'register_menu_item' hook to create a menu
         for this 'App' with a SubMenu linking to listing pages for any
         associated PageModelAdmin and SnippetModelAdmin instances
         """
@@ -683,7 +683,7 @@ class AppModelAdmin(object):
 
     def get_admin_urls_for_registration(self):
         """
-        Utilised by wagtail's 'register_admin_urls' hook to register urls for
+        Utilised by Wagtail's 'register_admin_urls' hook to register urls for
         used by any associated PageModelAdmin or SnippetModelAdmin instances
         """
         urls = []
