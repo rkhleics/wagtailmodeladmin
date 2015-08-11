@@ -163,7 +163,7 @@ The Wagtail CMS menu would look something like this:
 
 ### Want to use your own list page template?
 
-That's easy. `PageModelAdmin` and `SnippetModelAdmin` both look for custom list templates within your apps before resorting to the default. The order of preference is when finding a template is:
+That's easy. `PageModelAdmin` and `SnippetModelAdmin` both look for custom list templates within your project's template directories before resorting to the default. The order of preference when finding a template is:
 
 - wagtailmodeladmin/`{{ app_label }}`/`{{ model_name }}`/change_list.html
 - wagtailmodeladmin/`{{ model_name }}`/change_list.html
