@@ -291,11 +291,7 @@ class ModelAdminBase(object):
         return self.get_base_context_data(request)
 
     def get_list_view_media(self, request):
-        return Media(
-            css={
-                'all': ('wagtailmodeladmin/css/change_list.css',)
-            },
-        )
+        return Media()
 
     @csrf_protect_m
     def wagtailadmin_list_view(self, request):
@@ -481,11 +477,7 @@ class PageModelAdmin(ModelAdminBase):
         return False
 
     def get_add_view_media(self, request):
-        return Media(
-            css={
-                'all': ('wagtailmodeladmin/css/choose_parent.css',)
-            },
-        )
+        return Media()
 
     def get_add_view_context_data(self, request):
         context_data = self.get_base_context_data(request)

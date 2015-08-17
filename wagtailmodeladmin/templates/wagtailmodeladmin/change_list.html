@@ -6,8 +6,9 @@
 {% block css %}
     {{ block.super }}
     {% compress css %}
-        {{ media.css }}
+        <link rel="stylesheet" href="wagtailmodeladmin/css/change_list.css" type="text/css"/>
     {% endcompress %}
+    {{ media.css }}
     <style type="text/css">
         .nav-main li.menu-{{ module_name_plural }} {
             background: #1a1a1a;
@@ -21,9 +22,7 @@
 {% endblock %}
 
 {% block extra_js %}
-    {% compress js %}
-        {{ media.js }}
-    {% endcompress %}
+    {{ media.js }}
 {% endblock %}
 
 {% block content %}
