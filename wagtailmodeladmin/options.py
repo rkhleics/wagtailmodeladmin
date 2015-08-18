@@ -1,17 +1,6 @@
-import operator
-from functools import reduce
-
-from django.db import models
 from django.db.models import Model
-from django.db.models.fields.related import ForeignObjectRel
-from django.db.models.constants import LOOKUP_SEP
-from django.db.models.sql.constants import QUERY_TERMS
-from django.db.models.fields import FieldDoesNotExist
 from django.template.response import SimpleTemplateResponse, TemplateResponse
-from django.contrib.admin import widgets
 from django.contrib.admin.options import IncorrectLookupParameters
-from django.contrib.admin.util import lookup_needs_distinct
-from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth import get_permission_codename
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
@@ -19,11 +8,10 @@ from django.core.exceptions import PermissionDenied, ImproperlyConfigured
 from django.http import HttpResponseRedirect
 from django.forms import Form, Media, ModelChoiceField
 from django.views.decorators.csrf import csrf_protect
-from django.utils.translation import ugettext as _, ungettext
+from django.utils.translation import ugettext as _
 from django.utils.encoding import force_text
 from django.utils.decorators import method_decorator
 from django.utils.functional import cached_property
-from django.utils.http import urlencode
 csrf_protect_m = method_decorator(csrf_protect)
 
 from wagtail.wagtailcore.models import Page
@@ -31,7 +19,7 @@ from wagtail.wagtailcore.models import Page
 from .menus import (
     PageModelMenuItem, SnippetModelMenuItem, ModelAdminSubmenuMenuItem,
     SubMenu)
-from .views import PageModelAdminChangeList, SnippetModelAdminChangeList
+from .views import ListView, AddView, EditView, ChooseParentView
 
 
 class ModelAdminBase(object):
@@ -47,12 +35,10 @@ class ModelAdminBase(object):
     list_filter = ()
     list_select_related = False
     list_per_page = 100
-    list_max_show_all = 200
     search_fields = ()
     ordering = None
     parent = None
     paginator = Paginator
-    preserve_filters = False
     show_full_result_count = True
 
     def __init__(self, parent=None):
@@ -63,6 +49,7 @@ class ModelAdminBase(object):
             raise ImproperlyConfigured(
                 u"The model attribute on your '%s' class must be set, and "
                 "must be a valid Django model." % self.__class__.__name__)
+        self.is_pagemodel = issubclass(self.model, Page)
         self.opts = self.model._meta
         self.parent = parent
 
@@ -107,108 +94,19 @@ class ModelAdminBase(object):
         """
         return self.ordering or ()
 
-    def get_search_fields(self, request):
-        return self.search_fields
-
-    def get_queryset(self, request):
+    def get_base_queryset(self, request):
         """
         Returns a QuerySet of all model instances that can be edited by the
-        admin site. This is used by changelist_view.
+        admin site.
         """
         qs = self.model._default_manager.get_queryset()
-        # TODO: this should be handled by some parameter to the ChangeList.
         ordering = self.get_ordering(request)
         if ordering:
             qs = qs.order_by(*ordering)
         return qs
 
-    def get_search_results(self, request, queryset, search_term):
-        """
-        Returns a tuple containing a queryset to implement the search,
-        and a boolean indicating if the results may contain duplicates.
-        """
-        # Apply keyword searches.
-        def construct_search(field_name):
-            if field_name.startswith('^'):
-                return "%s__istartswith" % field_name[1:]
-            elif field_name.startswith('='):
-                return "%s__iexact" % field_name[1:]
-            elif field_name.startswith('@'):
-                return "%s__search" % field_name[1:]
-            else:
-                return "%s__icontains" % field_name
-
-        use_distinct = False
-        if self.search_fields and search_term:
-            orm_lookups = [construct_search(str(search_field))
-                           for search_field in self.search_fields]
-            for bit in search_term.split():
-                or_queries = [models.Q(**{orm_lookup: bit})
-                              for orm_lookup in orm_lookups]
-                queryset = queryset.filter(reduce(operator.or_, or_queries))
-            if not use_distinct:
-                for search_spec in orm_lookups:
-                    if lookup_needs_distinct(self.opts, search_spec):
-                        use_distinct = True
-                        break
-
-        return queryset, use_distinct
-
-    def get_paginator(self, request, queryset, per_page, orphans=0,
-                      allow_empty_first_page=True):
-        return self.paginator(queryset, per_page, orphans,
-                              allow_empty_first_page)
-
-    def lookup_allowed(self, lookup, value):
-        model = self.model
-        # Check FKey lookups that are allowed, so that popups produced by
-        # ForeignKeyRawIdWidget, on the basis of ForeignKey.limit_choices_to,
-        # are allowed to work.
-        for l in model._meta.related_fkey_lookups:
-            for k, v in widgets.url_params_from_lookup_dict(l).items():
-                if k == lookup and v == value:
-                    return True
-
-        parts = lookup.split(LOOKUP_SEP)
-
-        # Last term in lookup is a query term (__exact, __startswith etc)
-        # This term can be ignored.
-        if len(parts) > 1 and parts[-1] in QUERY_TERMS:
-            parts.pop()
-
-        # Special case -- foo__id__exact and foo__id queries are implied
-        # if foo has been specifically included in the lookup list; so
-        # drop __id if it is the last part. However, first we need to find
-        # the pk attribute name.
-        rel_name = None
-        for part in parts[:-1]:
-            try:
-                field, _, _, _ = model._meta.get_field_by_name(part)
-            except FieldDoesNotExist:
-                # Lookups on non-existent fields are ok, since they're ignored
-                # later.
-                return True
-            if hasattr(field, 'rel'):
-                if field.rel is None:
-                    # This property or relation doesn't exist, but it's allowed
-                    # since it's ignored in ChangeList.get_filters().
-                    return True
-                model = field.rel.to
-                rel_name = field.rel.get_related_field().name
-            elif isinstance(field, ForeignObjectRel):
-                model = field.model
-                rel_name = model._meta.pk.name
-            else:
-                rel_name = None
-        if rel_name and len(parts) > 1 and parts[-1] == rel_name:
-            parts.pop()
-
-        if len(parts) == 1:
-            return True
-        clean_lookup = LOOKUP_SEP.join(parts)
-        return (
-            clean_lookup in self.list_filter
-            or clean_lookup == self.date_hierarchy)
+    def get_search_fields(self, request):
+        return self.search_fields
 
     def has_add_permission(self, request):
         return True
@@ -222,27 +120,38 @@ class ModelAdminBase(object):
         opts = self.model._meta
         return (opts.app_label, opts.model_name)
 
-    def get_changelist(self, request, **kwargs):
-        """
-        Returns the ChangeList class for use on the changelist page.
-        """
-        return ChangeList
+    def get_url_pattern(self, function_name):
+        return r'^%s/%s/%s$' % (
+            self.opts.app_label, self.opts.model_name, function_name)
+
+    def get_url_name(self, function_name):
+        return '%s_%s_wagtailadmin_%s' % (
+            self.opts.app_label, self.opts.model_name, function_name)
 
     def get_list_url_definition(self):
         from django.conf.urls import url
-        url_opts = self.get_model_string_tuple()
-        return url(
-            r'^%s/%s$' % url_opts,
-            self.wagtailadmin_list_view,
-            name='%s_%s_wagtailadmin_list' % url_opts
-        )
+        return url(self.get_url_pattern('list'), self.wagtailadmin_list_view,
+                   name=self.get_url_name('list'))
+
+    def get_add_url_definition(self):
+        from django.conf.urls import url
+        return url(self.get_url_pattern('add'), self.wagtailadmin_add_view,
+                   name=self.get_url_name('list'))
+
+    def get_choose_parent_url_definition(self):
+        from django.conf.urls import url
+        return url(self.get_url_pattern('choose_parent'),
+                   self.wagtailadmin_choose_parent,
+                   name=self.get_url_name('choose_parent'))
 
     def get_list_url(self):
-        return reverse(
-            '%s_%s_wagtailadmin_list' % self.get_model_string_tuple())
+        return reverse(self.get_url_name('list'))
 
     def get_add_url(self):
-        return ''
+        return reverse(self.get_url_name('list'))
+
+    def get_choose_parent_url(self):
+        return reverse(self.get_url_name('choose_parent'))
 
     def get_admin_urls_for_registration(self):
         """
@@ -252,117 +161,34 @@ class ModelAdminBase(object):
         """
         return [
             self.get_list_url_definition(),
+            self.get_add_url_definition(),
+            self.get_choose_parent_url_definition(),
         ]
 
-    def get_preserved_filters(self, request):
-        """
-        Returns the preserved filters querystring. Not completely sure how
-        well this functionality works for this project, but have brought it in
-        from ModelAdmin, just in case.
-        """
-        match = request.resolver_match
-        list_url = '%s_%s_wagtailadmin_list' % self.get_model_string_tuple()
-        if self.preserve_filters and match:
-            if match.url_name == list_url:
-                preserved_filters = request.GET.urlencode()
-            else:
-                preserved_filters = request.GET.get('_changelist_filters')
-
-            if preserved_filters:
-                return urlencode({'_changelist_filters': preserved_filters})
-        return ''
-
-    def get_base_context_data(self, request):
-        if self.parent:
-            app_label = self.parent.get_menu_label().lower()
-        else:
-            app_label = self.app_label
-
-        return {
-            'app_label': app_label,
-            'module_name': self.model_name,
-            'module_name_plural': self.model_name_plural,
-            'module_icon': self.get_menu_icon(),
-            'add_url': self.get_add_url(),
-            'list_url': self.get_list_url(),
-        }
+    def get_context_data(self, request):
+        return {}
 
     def get_list_view_context_data(self, request):
-        return self.get_base_context_data(request)
+        return {}
+
+    def get_add_view_context_data(self, request):
+        return {}
+
+    def get_choose_parent_view_context_data(self, request):
+        return {}
 
     def get_list_view_media(self, request):
         return Media()
 
+    def get_add_view_media(self, request):
+        return Media()
+
+    def get_choose_parent_view_media(self, request):
+        return Media()
+
     @csrf_protect_m
     def wagtailadmin_list_view(self, request):
-        """
-        For now, this is a direct copy of changelist_view from ModelAdmin,
-        adding a few additional things to the context, and rendering to a
-        different template.
-        """
-        from django.contrib.admin.views.main import ERROR_FLAG
-
-        list_display = self.get_list_display(request)
-        list_filter = self.get_list_filter(request)
-        search_fields = self.get_search_fields(request)
-
-        cl_view = self.get_changelist(request)
-
-        try:
-            cl = cl_view(
-                request, self.model, list_display, [], list_filter, None,
-                search_fields, [], self.list_per_page,
-                self.list_max_show_all, [], self)
-
-        except IncorrectLookupParameters:
-            # Wacky lookup parameters were given, so redirect to the main
-            # changelist page, without parameters, and pass an 'invalid=1'
-            # parameter via the query string. If wacky parameters were given
-            # and the 'invalid=1' parameter was already in the query string,
-            # something is screwed up with the database, so display an error
-            # page.
-            if ERROR_FLAG in request.GET.keys():
-                return SimpleTemplateResponse('admin/invalid_setup.html', {
-                    'title': _('Database error'),
-                })
-            return HttpResponseRedirect(request.path + '?' + ERROR_FLAG + '=1')
-
-        cl.formset = None
-
-        selection_note_all = ungettext(
-            '%(total_count)s selected',
-            'All %(total_count)s selected', cl.result_count)
-
-        context_data = self.get_list_view_context_data(request)
-        context_data.update({
-            'selection_note': _('0 of %(cnt)s selected') % {
-                'cnt': len(cl.result_list)},
-            'selection_note_all': selection_note_all % {
-                'total_count': cl.result_count},
-            'title': cl.title,
-            'no_items': bool(not self.model.objects.all().count()),
-            'to_field': cl.to_field,
-            'cl': cl,
-            'preserved_filters': self.get_preserved_filters(request),
-            'has_add_permission': self.has_add_permission(request),
-            'media': self.get_list_view_media(request),
-        })
-
-        return TemplateResponse(request, self.get_wagtailadmin_list_template(),
-                                context_data)
-
-    def get_wagtailadmin_list_template(self):
-        """
-        Returns a list of templates to look for in order to render the
-        wagtailadmin_list_view.
-        """
-        opts = self.model._meta
-        return [
-            'wagtailmodeladmin/%s/%s/change_list.html' % (opts.app_label,
-                                                          opts.model_name),
-            'wagtailmodeladmin/%s/change_list.html' % opts.app_label,
-            'wagtailmodeladmin/change_list.html',
-        ]
+        return ListView(request, self.model, self).get(request)
 
     def construct_main_menu(self, request, menu_items):
         """
@@ -408,22 +234,6 @@ class PageModelAdmin(ModelAdminBase):
         return PageModelMenuItem(
             self.model, self.get_menu_label(), self.get_list_url(),
             self.get_menu_icon(), order or self.get_menu_order())
-
-    def get_add_url_definition(self):
-        from django.conf.urls import url
-        url_opts = self.get_model_string_tuple()
-        return url(
-            r'^%s/%s/add$' % url_opts,
-            self.wagtailadmin_add_view,
-            name='%s_%s_wagtailadmin_add' % url_opts
-        )
-
-    def get_add_url(self):
-        return reverse(
-            '%s_%s_wagtailadmin_add' % self.get_model_string_tuple())
-
-    def get_changelist(self, request, **kwargs):
-        return PageModelAdminChangeList
 
     def get_admin_urls_for_registration(self):
         """
@@ -578,9 +388,6 @@ class SnippetModelAdmin(ModelAdminBase):
     def get_add_url(self):
         return reverse('wagtailsnippets_create',
                        args=self.get_model_string_tuple())
-
-    def get_changelist(self, request, **kwargs):
-        return SnippetModelAdminChangeList
 
 
 class AppModelAdmin(object):
