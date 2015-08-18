@@ -482,7 +482,7 @@ class PageModelAdmin(ModelAdminBase):
     def get_add_view_context_data(self, request):
         context_data = self.get_base_context_data(request)
         context_data.update({
-            'media': self.get_add_view_media(),
+            'media': self.get_add_view_media(request),
         })
         return context_data
 
