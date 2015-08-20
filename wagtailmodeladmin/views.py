@@ -17,10 +17,9 @@ from django.core.exceptions import (
 )
 from django.core.paginator import Paginator, InvalidPage
 
-from django.contrib.auth import get_permission_codename
 from django.contrib.admin import FieldListFilter, widgets
 from django.contrib.admin.options import IncorrectLookupParameters
-from django.contrib.admin.exceptions import DisallowedModelAdminLookup
+from django.contrib.admin.exceptions import Disallowedmodel_adminLookup
 from django.contrib.admin.utils import (
     get_fields_from_path, lookup_needs_distinct, prepare_lookup_value, quote)
 
@@ -31,7 +30,10 @@ from django.utils.http import urlencode
 from django.utils.functional import cached_property
 from django.views.generic import View
 
+from wagtail.wagtailadmin.utils import permission_denied
 from wagtail.wagtailcore.models import Page
+
+from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
 
 # ListView settings
 ORDER_VAR = 'o'
@@ -39,17 +41,20 @@ ORDER_TYPE_VAR = 'ot'
 PAGE_VAR = 'p'
 SEARCH_VAR = 'q'
 ERROR_FLAG = 'e'
-
 IGNORED_PARAMS = (ORDER_VAR, ORDER_TYPE_VAR, SEARCH_VAR)
 
 
-class ModelAdminView(View):
-    def __init__(self, request, model, modeladmin=None):
+class BaseView(View):
+    def __init__(self, request, model_admin):
         self.request = request
-        self.model = model
-        self.opts = model._meta
-        self.modeladmin = modeladmin
-        self.is_pagemodel = issubclass(self.model, Page)
+        self.model_admin = model_admin
+        self.model = model_admin.model
+        self.opts = model_admin.model._meta
+        self.is_pagemodel = model_admin.is_pagemodel
+        if self.is_pagemodel:
+            self.permission_helper = PagePermissionHelper(self.model)
+        else:
+            self.permission_helper = ModelPermissionHelper(self.model)
 
     @cached_property
     def app_label(self):
@@ -63,26 +68,12 @@ class ModelAdminView(View):
     def model_name_plural(self):
         return force_text(self.opts.verbose_name_plural)
 
-    def try_for_modeladmin_attr(self, attr_name, fallback=None):
-        if self.modeladmin:
-            return getattr(self.modeladmin, attr_name, fallback)
-        return fallback
-
-    def try_for_modeladmin_method(self, method_name, fallback, *args, **kwargs):
-        if self.modeladmin:
-            method = getattr(self.modeladmin, method_name, None)
-            if method is None:
-                return fallback
-            return method(*args, **kwargs)
-        return fallback
-
     def get_menu_icon(self):
-        return self.try_for_modeladmin_method('get_menu_icon',
-                                              'icon-doc-full-inverse')
+        return self.model_admin.get_menu_icon()
 
     def get_context_data(self, request, *args, **kwargs):
-        if self.modeladmin and self.modeladmin.parent:
-            app_label = self.modeladmin.parent.get_menu_label().lower()
+        if self.model_admin.parent:
+            app_label = self.model_admin.parent.get_menu_label().lower()
         else:
             app_label = self.app_label
         context = {
@@ -91,35 +82,14 @@ class ModelAdminView(View):
             'module_name_plural': self.model_name_plural,
             'module_icon': self.get_menu_icon(),
             'is_pagemodel': self.is_pagemodel,
-            'list_url': self.try_for_modeladmin_method('get_list_url', ''),
-            'choose_parent_url': self.try_for_modeladmin_method('get_choose_parent_url', ''),
-            'add_url': self.try_for_modeladmin_method('get_add_url', ''),
+            'list_url': self.modeladmin.get_list_url(),
+            'add_url': self.model_admin.get_add_url(),
         }
-        context.update(
-            self.try_for_modeladmin_method('get_context_data', {}, request)
-        )
+        context.update(self.model_admin.get_context_data(request))
         return context
 
-    def has_add_permission(self, request):
-        if self.modeladmin:
-            return self.modeladmin.has_add_permission(request)
-        if self.is_pagemodel:
-            return bool(self.get_valid_parent_pages(request))
-        opts = self.opts
-        codename = get_permission_codename('add', opts)
-        return request.user.has_perm("%s.%s" % (opts.app_label, codename))
-
-    def permissions_for_user(self, user, obj):
-        if self.is_pagemodel:
-            return obj.permissions_for_user(user)
-        opts = self.opts
-        app_label = opts.app_label
-        return {
-            'can_edit': user.has_perm("%s.%s" % (
-                app_label, get_permission_codename('change', self.opts))),
-            'can_delete': user.has_perm("%s.%s" % (
-                app_label, get_permission_codename('delete', self.opts))),
-        }
+    def get_base_queryset(self, request):
+        return self.model_admin.get_queryset(request)
 
     def edit_button(self, obj):
         pk = getattr(obj, self.pk_attname)
@@ -161,42 +131,23 @@ class ModelAdminView(View):
 
     def get_action_buttons_for_obj(self, user, obj):
         buttons = []
-        perms = self.permissions_for_user(user, obj)
-        if self.is_pagemodel:
-            if perms.can_edit():
-                buttons.append(self.edit_button(obj))
-            if perms.can_unpublish() and obj.live:
-                buttons.append(self.unpublish_button(obj))
-            if perms.can_delete():
-                buttons.append(self.delete_button(obj))
-        else:
-            if perms['can_edit']:
-                buttons.append(self.edit_button(obj))
-            if perms['can_delete']:
-                buttons.append(self.delete_button(obj))
+        if self.permission_helper.can_edit_object(user, obj):
+            buttons.append(self.edit_button(obj))
+        if self.permission_helper.can_unpublish_object(user, obj):
+            buttons.append(self.unpublish_button(obj))
+        if self.permission_helper.can_delete_object(user, obj):
+            buttons.append(self.delete_button(obj))
         return buttons
 
 
-class ListView(ModelAdminView):
-    def __init__(self, request, model, modeladmin=None, list_display=None,
-                 list_filter=None, search_fields=None, items_per_page=None,
-                 select_related=None):
-        super(ListView, self).__init__(request, model, modeladmin)
-
-        self.list_display = list_display or self.try_for_modeladmin_method(
-            'get_list_display', ['__str__'], request)
-
-        self.list_filter = list_filter or self.try_for_modeladmin_method(
-            'get_list_display', [], request)
-
-        self.search_fields = search_fields or self.try_for_modeladmin_method(
-            'get_search_fields', [], request)
-
-        self.items_per_page = items_per_page or self.try_for_modeladmin_attr(
-            'list_per_page', 100)
-
-        self.select_related = select_related or self.try_for_modeladmin_attr(
-            'list_select_related', False)
+class ListView(BaseView):
+    def __init__(self, request, model_admin):
+        super(ListView, self).__init__(request, model_admin)
+        self.list_display = model_admin.get_list_display(request)
+        self.list_filter = model_admin.get_list_filter(request)
+        self.search_fields = model_admin.get_search_fields(request)
+        self.items_per_page = model_admin.items_per_page
+        self.select_related = model_admin.list_select_related
 
         # Get search parameters from the query string.
         try:
@@ -212,6 +163,12 @@ class ListView(ModelAdminView):
 
         self.query = request.GET.get(SEARCH_VAR, '')
         self.pk_attname = self.opts.pk.attname
+        self.queryset = self.get_queryset(request)
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.permission_helper.allow_list_view(request.user):
+            return permission_denied(request)
+        return super(ListView, self).dispatch(request, *args, **kwargs)
 
     def url_for_result(self, result):
         raise NoReverseMatch
@@ -247,20 +204,6 @@ class ListView(ModelAdminView):
                         break
 
         return queryset, use_distinct
-
-    def get_base_queryset(self, request):
-        """
-        Returns a QuerySet of all model instances that can be edited by the
-        admin site.
-        """
-        qs = self.model._default_manager.get_queryset()
-        ordering = self.get_ordering(request)
-        if ordering:
-            qs = qs.order_by(*ordering)
-        return qs
-
-    def get_paginator(self, request, queryset, per_page):
-        return Paginator(queryset, per_page)
 
     def lookup_allowed(self, lookup, value):
         # Check FKey lookups that are allowed, so that popups produced by
@@ -330,7 +273,7 @@ class ListView(ModelAdminView):
 
         for key, value in lookup_params.items():
             if not self.lookup_allowed(key, value):
-                raise DisallowedModelAdminLookup(
+                raise Disallowedmodel_adminLookup(
                     "Filtering by %s not allowed" % key)
 
         filter_specs = []
@@ -342,7 +285,7 @@ class ListView(ModelAdminView):
                         request,
                         lookup_params,
                         self.model,
-                        self.modeladmin)
+                        self.model_admin)
                 else:
                     field_path = None
                     if isinstance(list_filter, (tuple, list)):
@@ -364,7 +307,7 @@ class ListView(ModelAdminView):
                         request,
                         lookup_params,
                         self.model,
-                        self.modeladmin,
+                        self.model_admin,
                         field_path=field_path)
 
                     # Check if we need to use distinct()
@@ -412,12 +355,20 @@ class ListView(ModelAdminView):
                 p[k] = v
         return '?%s' % urlencode(sorted(p.items()))
 
+    def _get_default_ordering(self):
+        ordering = []
+        if self.model_admin.ordering:
+            ordering = self.model_admin.ordering
+        elif self.opts.ordering:
+            ordering = self.opts.ordering
+        return ordering
+
     def get_default_ordering(self, request):
-        if self.modeladmin and self.modeladmin.get_ordering(request):
-            return self.modeladmin.get_ordering(request)
+        if self.model_admin.get_ordering(request):
+            return self.model_admin.get_ordering(request)
         if self.opts.ordering:
             return self.opts.ordering
-        return []
+        return ()
 
     def get_ordering_field(self, field_name):
         """
@@ -435,8 +386,8 @@ class ListView(ModelAdminView):
             # that allows sorting.
             if callable(field_name):
                 attr = field_name
-            elif hasattr(self.modeladmin, field_name):
-                attr = getattr(self.modeladmin, field_name)
+            elif hasattr(self.model_admin, field_name):
+                attr = getattr(self.model_admin, field_name)
             else:
                 attr = getattr(self.model, field_name)
             return getattr(attr, 'admin_order_field', None)
@@ -451,7 +402,7 @@ class ListView(ModelAdminView):
         ordering field.
         """
         params = self.params
-        ordering = self.get_default_ordering(request)
+        ordering = list(self.get_default_ordering(request))
         if ORDER_VAR in params:
             # Clear ordering and used params
             ordering = []
@@ -495,9 +446,9 @@ class ListView(ModelAdminView):
         ordering = self._get_default_ordering()
         ordering_fields = OrderedDict()
         if ORDER_VAR not in self.params:
-            # for ordering specified on ModelAdmin or model Meta, we don't know
-            # the right column numbers absolutely, because there might be more
-            # than one column associated with that ordering, so we guess.
+            # for ordering specified on model_admin or model Meta, we don't
+            # know the right column numbers absolutely, because there might be
+            # morr than one column associated with that ordering, so we guess.
             for field in ordering:
                 if field.startswith('-'):
                     field = field[1:]
@@ -524,7 +475,7 @@ class ListView(ModelAdminView):
          filters_use_distinct) = self.get_filters(request)
 
         # Then, we let every list filter modify the queryset to its liking.
-        qs = self.get_base_queryset()
+        qs = self.get_base_queryset(request)
         for filter_spec in self.filter_specs:
             new_qs = filter_spec.queryset(request, qs)
             if new_qs is not None:
@@ -583,56 +534,51 @@ class ListView(ModelAdminView):
             except FieldDoesNotExist:
                 pass
             else:
-                if isinstance(field.remote_field, models.ManyToOneRel):
+                if isinstance(field, models.ManyToOneRel):
                     return True
         return False
 
-    def get_context_data(self, request, *args, **kwargs):
-        context = super(ListView, self).get_context_data()
-        context.update(
-            self.try_for_modeladmin_method('get_list_view_context_data', {},
-                                           request))
-        return context
-
     def get_extra_media(self, request):
-        return self.try_for_modeladmin_method('get_list_view_media', Media(),
-                                              request)
+        return self.model_admin.get_extra_media_for_list_view()
 
     def get(self, request, *args, **kwargs):
-        context = self.get_context_data(request, *args, **kwargs)
-
+        all_count = self.get_base_queryset(request).count()
         queryset = self.get_queryset(request)
-        paginator = self.get_paginator(request, queryset, self.items_per_page)
-        total_count = paginator.count
-        multi_page = total_count > self.items_per_page
+        result_count = queryset.count()
+        paginator = Paginator(queryset, self.items_per_page)
+        multi_page = paginator.num_pages > 1
 
         # Get the list of objects to display on this page.
         try:
             page_obj = paginator.page(self.page_num + 1)
         except InvalidPage:
             page_obj = paginator.page(1)
-        result_list = page_obj.object_list
 
+        user_can_add = self.permission_helper.has_add_permission(request.user)
+
+        context = self.get_context_data(request, *args, **kwargs)
         context.update({
-            'total_count': total_count,
-            'multi_page': multi_page,
-            'page_obj': page_obj,
-            'result_list': result_list,
-            'paginator': paginator,
-            'selection_note': _('0 of %(cnt)s selected') % {
-                'cnt': len(result_list)},
-            'title': _('Select a %s to change') % self.model_name,
-            'no_items': bool(not self.model.objects.all().count()),
             'cl': self,
-            'has_add_permission': self.has_add_permission(request),
+            'all_count': all_count,
+            'result_count': result_count,
+            'multi_page': multi_page,
+            'paginator': paginator,
+            'page_obj': page_obj,
+            'object_list': page_obj.object_list,
+            'title': _('Listing of %s') % self.model_name_plural,
+            'show_add_button': user_can_add,
             'media': self.get_extra_media(request),
         })
 
         if self.is_pagemodel:
-            valid_parent_count = self.get_valid_parent_pages(request).count()
+            allowed_parent_types = self.model.allowed_parent_page_types()
+            if allowed_parent_types:
+                valid_parent_count = self.permission_helper.get_valid_parent_pages(request.user).count()
+            else:
+                valid_parent_count = 0
             context.update({
                 'no_valid_parents': not valid_parent_count,
-                'required_parent_types': self.model.allowed_parent_page_types(),
+                'required_parent_types': allowed_parent_types,
             })
 
         return TemplateResponse(request, self.get_template(), context)
@@ -647,13 +593,16 @@ class ListView(ModelAdminView):
         ]
 
 
-class AddView(ModelAdminView):
-    pass
+class AddView(BaseView):
+    def dispatch(self, request, *args, **kwargs):
+        if not self.permission_helper.has_add_permission(request.user):
+            return permission_denied(request)
+        return super(AddView, self).dispatch(request, *args, **kwargs)
 
 
-class EditView(ModelAdminView):
-    pass
-
-
-class ChooseParentView(ModelAdminView):
-    pass
+class ChooseParenPageView(BaseView):
+    def dispatch(self, request, *args, **kwargs):
+        if not self.permission_helper.has_add_permission(request.user):
+            return permission_denied(request)
+        return super(ChooseParenPageView, self).dispatch(request, *args,
+                                                         **kwargs)

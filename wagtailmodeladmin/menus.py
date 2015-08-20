@@ -1,62 +1,36 @@
-from django.contrib.auth import get_permission_codename
 from wagtail.wagtailadmin.menu import Menu, MenuItem, SubmenuMenuItem
 
 
-class PageModelMenuItem(MenuItem):
+class ModelAdminMenuItem(MenuItem):
     """
     A sub-class of wagtail's MenuItem, used by PageModelAdmin to add a link
     to it's listing page
     """
-    def __init__(self, model, label, url, icon, order):
-        self.model = model
-        classnames = 'icon %s' % icon
-        super(PageModelMenuItem, self).__init__(
-            label=label, url=url, classnames=classnames, order=order)
+    def __init__(self, model_admin, order):
+        self.model_admin = model_admin
+        self.model = model_admin.model
+        self.opts = model_admin.model._meta
+        classnames = 'icon %s' % model_admin.get_menu_icon()
+        super(ModelMenuItem, self).__init__(
+            label=model_admin.get_menu_label(), url=model_admin.get_list_url(),
+            classnames=classnames, order=order)
 
     def is_show(self, request):
-        """
-        For now, we always allow the link for a listing page, but we can
-        do something smarter using the current user and page permissions later,
-        if the need arises
-        """
-        return True
+        return self.model_admin.permission_helper.allow_list_view(request.user)
 
 
-class SnippetModelMenuItem(PageModelMenuItem):
+class ModelAdminGroupMenuItem(SubmenuMenuItem):
     """
-    A sub-class of PageModelMenuItem, used by SnippetModelAdmin to add a link
-    to it's listing page
-    """
-    def is_shown(self, request):
-        """
-        Because snippet model permissions are very simple to test for, we
-        check those permissions to decide if the menu item should be is_shown
-        for the current user
-        """
-        user = request.user
-        opts = self.model._meta
-        app_label = opts.app_label
-        return any([
-            user.has_perm("%s.%s" % (
-                app_label, get_permission_codename('add', opts))),
-            user.has_perm("%s.%s" % (
-                app_label, get_permission_codename('change', opts))),
-            user.has_perm("%s.%s" % (
-                app_label, get_permission_codename('delete', opts))),
-        ])
-
-
-class ModelAdminSubmenuMenuItem(SubmenuMenuItem):
-    """
-    A sub-class of wagtail's SubmenuMenuItem, used by AppModelAdmin to add a
+    A sub-class of wagtail's SubmenuMenuItem, used by ModelAdminGroup to add a
     link to the admin menu with it's own submenu, linking to various listing
     pages
     """
-    def __init__(self, label, icon, order, submenu):
+    def __init__(self, modeladmingroup, order, submenu):
         self.menu = submenu
-        classnames = 'icon %s' % icon
+        classnames = 'icon %s' % modeladmingroup.get_menu_icon()
         super(SubmenuMenuItem, self).__init__(
-            label=label, url='#', classnames=classnames, order=order)
+            label=modeladmingroup.get_menu_lable(), url='#',
+            classnames=classnames, order=order)
 
     def is_shown(self, request):
         """

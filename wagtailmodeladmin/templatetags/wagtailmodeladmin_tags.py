@@ -2,13 +2,12 @@ from django.template import Library
 from django.utils.safestring import mark_safe
 register = Library()
 
-from django.contrib.admin.views.main import PAGE_VAR
+from ..views import PAGE_VAR, SEARCH_VAR
 from django.utils.html import format_html
 from django.utils.translation import ugettext as _
 
 from django.contrib.admin.templatetags.admin_list import (
     result_list as djangoadmin_result_list,
-    search_form as djangoadmin_search_form,
     admin_list_filter as djangoadmin_list_filter,
 )
 
@@ -55,7 +54,10 @@ def result_list(context, cl):
 
 @register.inclusion_tag("wagtailmodeladmin/search_form.html")
 def search_form(cl):
-    return djangoadmin_search_form(cl)
+    return {
+        'cl': cl,
+        'search_var': SEARCH_VAR,
+    }
 
 
 @register.simple_tag
