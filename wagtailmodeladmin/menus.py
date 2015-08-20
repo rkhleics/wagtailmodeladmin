@@ -12,7 +12,7 @@ class ModelAdminMenuItem(MenuItem):
         self.opts = model_admin.model._meta
         classnames = 'icon %s' % model_admin.get_menu_icon()
         super(ModelAdminMenuItem, self).__init__(
-            label=model_admin.get_menu_label(), url=model_admin.get_list_url(),
+            label=model_admin.get_menu_label(), url=model_admin.get_index_url(),
             classnames=classnames, order=order)
 
     def is_show(self, request):
