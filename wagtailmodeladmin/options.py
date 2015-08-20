@@ -125,11 +125,11 @@ class ModelAdmin(object):
     def get_choose_parent_page_url_definition(self):
         return url(
             self.get_url_pattern('choose_parent'),
-            self.choose_parent_view,
+            self.choose_parent_page_view,
             name=self.get_url_name('choose_parent'))
 
     def get_add_url_definition(self):
-        if self.is_pagemodel():
+        if self.is_pagemodel:
             pattern = r'^%s/%s/add/(?P<parent_id>[0-9]+)$' % (
                 self.opts.app_label, self.opts.model_name)
         else:
@@ -244,3 +244,11 @@ class ModelAdminGroup(object):
         for instance in self.modeladmin_instances:
             urls.extend(instance.get_admin_urls_for_registration())
         return urls
+
+
+class PageModelAdmin(ModelAdmin):
+    pass
+
+
+class SnippetModelAdmin(ModelAdmin):
+    pass

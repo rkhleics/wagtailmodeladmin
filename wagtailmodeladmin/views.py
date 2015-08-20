@@ -19,7 +19,7 @@ from django.core.paginator import Paginator, InvalidPage
 
 from django.contrib.admin import FieldListFilter, widgets
 from django.contrib.admin.options import IncorrectLookupParameters
-from django.contrib.admin.exceptions import Disallowedmodel_adminLookup
+from django.contrib.admin.exceptions import DisallowedModelAdminLookup
 from django.contrib.admin.utils import (
     get_fields_from_path, lookup_needs_distinct, prepare_lookup_value, quote)
 
@@ -30,10 +30,8 @@ from django.utils.http import urlencode
 from django.utils.functional import cached_property
 from django.views.generic import View
 
-from wagtail.wagtailadmin.utils import permission_denied
-from wagtail.wagtailcore.models import Page
-
 from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
+from .utils import permission_denied
 
 # ListView settings
 ORDER_VAR = 'o'
@@ -273,7 +271,7 @@ class ListView(BaseView):
 
         for key, value in lookup_params.items():
             if not self.lookup_allowed(key, value):
-                raise Disallowedmodel_adminLookup(
+                raise DisallowedModelAdminLookup(
                     "Filtering by %s not allowed" % key)
 
         filter_specs = []
@@ -600,9 +598,9 @@ class AddView(BaseView):
         return super(AddView, self).dispatch(request, *args, **kwargs)
 
 
-class ChooseParenPageView(BaseView):
+class ChooseParentPageView(BaseView):
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.has_add_permission(request.user):
             return permission_denied(request)
-        return super(ChooseParenPageView, self).dispatch(request, *args,
-                                                         **kwargs)
+        return super(ChooseParentPageView, self).dispatch(request, *args,
+                                                          **kwargs)
