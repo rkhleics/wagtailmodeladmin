@@ -11,7 +11,7 @@ class ModelAdminMenuItem(MenuItem):
         self.model = model_admin.model
         self.opts = model_admin.model._meta
         classnames = 'icon %s' % model_admin.get_menu_icon()
-        super(ModelMenuItem, self).__init__(
+        super(ModelAdminMenuItem, self).__init__(
             label=model_admin.get_menu_label(), url=model_admin.get_list_url(),
             classnames=classnames, order=order)
 
@@ -19,7 +19,7 @@ class ModelAdminMenuItem(MenuItem):
         return self.model_admin.permission_helper.allow_list_view(request.user)
 
 
-class ModelAdminGroupMenuItem(SubmenuMenuItem):
+class GroupMenuItem(SubmenuMenuItem):
     """
     A sub-class of wagtail's SubmenuMenuItem, used by ModelAdminGroup to add a
     link to the admin menu with it's own submenu, linking to various listing
@@ -28,7 +28,7 @@ class ModelAdminGroupMenuItem(SubmenuMenuItem):
     def __init__(self, modeladmingroup, order, submenu):
         self.menu = submenu
         classnames = 'icon %s' % modeladmingroup.get_menu_icon()
-        super(SubmenuMenuItem, self).__init__(
+        super(GroupMenuItem, self).__init__(
             label=modeladmingroup.get_menu_lable(), url='#',
             classnames=classnames, order=order)
 

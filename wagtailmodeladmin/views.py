@@ -80,10 +80,10 @@ class BaseView(View):
             'module_name_plural': self.model_name_plural,
             'module_icon': self.get_menu_icon(),
             'is_pagemodel': self.is_pagemodel,
-            'list_url': self.modeladmin.get_list_url(),
+            'list_url': self.model_admin.get_list_url(),
             'add_url': self.model_admin.get_add_url(),
         }
-        context.update(self.model_admin.get_context_data(request))
+        context.update(self.model_admin.get_extra_context_data(request))
         return context
 
     def get_base_queryset(self, request):
@@ -144,7 +144,7 @@ class ListView(BaseView):
         self.list_display = model_admin.get_list_display(request)
         self.list_filter = model_admin.get_list_filter(request)
         self.search_fields = model_admin.get_search_fields(request)
-        self.items_per_page = model_admin.items_per_page
+        self.items_per_page = model_admin.list_per_page
         self.select_related = model_admin.list_select_related
 
         # Get search parameters from the query string.
@@ -536,9 +536,6 @@ class ListView(BaseView):
                     return True
         return False
 
-    def get_extra_media(self, request):
-        return self.model_admin.get_extra_media_for_list_view()
-
     def get(self, request, *args, **kwargs):
         all_count = self.get_base_queryset(request).count()
         queryset = self.get_queryset(request)
@@ -565,7 +562,7 @@ class ListView(BaseView):
             'object_list': page_obj.object_list,
             'title': _('Listing of %s') % self.model_name_plural,
             'show_add_button': user_can_add,
-            'media': self.get_extra_media(request),
+            'media': self.model_admin.get_extra_media_for_list_view(request),
         })
 
         if self.is_pagemodel:
@@ -579,16 +576,12 @@ class ListView(BaseView):
                 'required_parent_types': allowed_parent_types,
             })
 
+        context.update(self.model_admin.get_extra_list_view_context_data(request))
+
         return TemplateResponse(request, self.get_template(), context)
 
     def get_template(self):
-        opts = self.opts
-        return [
-            'wagtailmodeladmin/%s/%s/change_list.html' % (opts.app_label,
-                                                          opts.model_name),
-            'wagtailmodeladmin/%s/change_list.html' % opts.app_label,
-            'wagtailmodeladmin/change_list.html',
-        ]
+        return self.model_admin.get_list_template()
 
 
 class AddView(BaseView):
@@ -604,3 +597,6 @@ class ChooseParentPageView(BaseView):
             return permission_denied(request)
         return super(ChooseParentPageView, self).dispatch(request, *args,
                                                           **kwargs)
+
+    def get_template(self):
+        return self.model_admin.get_choose_parent_page_template()

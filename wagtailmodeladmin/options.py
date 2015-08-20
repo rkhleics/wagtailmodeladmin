@@ -10,7 +10,7 @@ csrf_protect_m = method_decorator(csrf_protect)
 
 from wagtail.wagtailcore.models import Page
 
-from .menus import ModelAdminMenuItem, ModelAdminGroupMenuItem, SubMenu
+from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
 from .views import ListView, AddView, ChooseParentPageView
 
@@ -108,32 +108,21 @@ class ModelAdmin(object):
         return r'^%s/%s/%s$' % (
             self.opts.app_label, self.opts.model_name, function_name)
 
-    def get_url_pattern_with_object_id(self, function_name):
-        return r'^%s/%s/%s/(?P<object_id>[0-9]+)$' % (
-            self.opts.app_label, self.opts.model_name, function_name)
-
     def get_url_name(self, function_name):
-        return '%s_%s_wagtailadmin_%s' % (
+        return '%s_%s_modeladmin_%s' % (
             self.opts.app_label, self.opts.model_name, function_name)
 
     def get_list_url_definition(self):
-        return url(
-            self.get_url_pattern('list'),
-            self.list_view,
-            name=self.get_url_name('list'))
+        pattern = self.get_url_pattern('list')
+        return url(pattern, self.list_view, name=self.get_url_name('list'))
 
     def get_choose_parent_page_url_definition(self):
-        return url(
-            self.get_url_pattern('choose_parent'),
-            self.choose_parent_page_view,
-            name=self.get_url_name('choose_parent'))
+        pattern = self.get_url_pattern('choose_parent')
+        return url(pattern, self.choose_parent_page_view,
+                   name=self.get_url_name('choose_parent'))
 
     def get_add_url_definition(self):
-        if self.is_pagemodel:
-            pattern = r'^%s/%s/add/(?P<parent_id>[0-9]+)$' % (
-                self.opts.app_label, self.opts.model_name)
-        else:
-            pattern = self.get_url_pattern('add'),
+        pattern = self.get_url_pattern('modeladmin_add')
         return url(pattern, self.add_view, name=self.get_url_name('add'))
 
     def get_list_url(self):
@@ -141,6 +130,9 @@ class ModelAdmin(object):
 
     def get_choose_parent_page_url(self):
         return reverse(self.get_url_name('choose_parent'))
+
+    def get_add_url(self):
+        return reverse(self.get_url_name('add'))
 
     def get_admin_urls_for_registration(self):
         """
@@ -156,18 +148,24 @@ class ModelAdmin(object):
     def get_extra_media_for_list_view(self, request):
         return Media()
 
-    def get_extra_media_for_add_view(self, request):
-        return Media()
-
     def get_extra_media_for_choose_parent_page_view(self, request):
         return Media()
+
+    def get_extra_context_data(self, request):
+        return {}
+
+    def get_extra_list_view_context_data(self, request):
+        return {}
+
+    def get_extra_choose_parent_page_view_context_data(self, request):
+        return {}
 
     @csrf_protect_m
     def list_view(self, request):
         return ListView(request, self).dispatch(request)
 
-    def add_view(self, request, parent_id=None):
-        return AddView(request, self, parent_id).dispatch(request)
+    def add_view(self, request):
+        return AddView(request, self).dispatch(request)
 
     @csrf_protect_m
     def choose_parent_page_view(self, request):
@@ -180,6 +178,22 @@ class ModelAdmin(object):
         to create a SubMenu
         """
         return ModelAdminMenuItem(self, order or self.get_menu_order())
+
+    def get_list_template(self):
+        opts = self.opts
+        return [
+            'wagtailmodeladmin/%s/%s/index.html' % (opts.app_label, opts.model_name),
+            'wagtailmodeladmin/%s/index.html' % opts.app_label,
+            'wagtailmodeladmin/index.html',
+        ]
+
+    def get_choose_parent_page_template(self):
+        opts = self.opts
+        return [
+            'wagtailmodeladmin/%s/%s/choose_parent_page.html' % (opts.app_label, opts.model_name),
+            'wagtailmodeladmin/%s/choose_parent_page.html' % opts.app_label,
+            'wagtailmodeladmin/choose_parent_page.html',
+        ]
 
 
 class ModelAdminGroup(object):
@@ -229,11 +243,8 @@ class ModelAdminGroup(object):
                 item_order += 1
                 menu_items.append(modeladmin.get_menu_item(order=item_order))
             submenu = SubMenu(menu_items)
-            return ModelAdminGroupMenuItem(
-                self.get_menu_label(),
-                self.get_menu_icon(),
-                self.get_menu_order(),
-                submenu)
+            return GroupMenuItem(self.get_menu_label(), self.get_menu_icon(),
+                                 self.get_menu_order(), submenu)
 
     def get_admin_urls_for_registration(self):
         """
