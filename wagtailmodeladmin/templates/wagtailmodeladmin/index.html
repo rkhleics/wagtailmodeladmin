@@ -48,7 +48,7 @@
     <div class="row" id="changelist">
     
     {% block filters %}
-        {% if cl.has_filters and not no_items %}
+        {% if cl.has_filters and all_count %}
         <div id="changelist-filter" class="col3">
             <h2>{% trans 'Filter' %}</h2>
             {% for spec in cl.filter_specs %}{% admin_list_filter cl spec %}{% endfor %}
@@ -56,9 +56,9 @@
         {% endif %}
     {% endblock %}
 
-    <div id="result_list" class="{% if cl.has_filters and not no_items %}col9{% else %}col12{% endif %}">
-    {% block result_list %}
-        {% if no_items %}
+    <div id="result_list" class="{% if cl.has_filters and all_count %}col9{% else %}col12{% endif %}">
+
+        {% if not all_count %}
             <div class="nice-padding" style="margin-top:30px;">
                 {% if no_valid_parents %}
                     <p>{% blocktrans with module_name_plural as name %}No {{ name }} have been created yet. One of the following must be added to your site before any {{ name }} can be added.{% endblocktrans %}</p>
@@ -74,14 +74,23 @@
                     {% endif %}</p>
                 {% endif %}
             </div>
-        {% else %}
-            {% result_list cl %}
         {% endif %}
-    {% endblock %}
+
+        {% block result_list %}
+            {% result_list cl object_list %}
+        {% endblock %}
     </div>
    
     {% block pagination %}
-        {% if not no_items %}{% pagination cl %}{% endif %}
+        <div class="pagination {% if cl.has_filters and all_count %}col9{% else %}col12{% endif %}">
+            <p>Page {{ page_obj.number }} of {{ paginator.num_pages }}.</p>
+            {% if paginator.num_pages > 1 %}
+                <ul>
+                    {% pagination_link_previous cl page_obj %}
+                    {% pagination_link_next cl page_obj %}
+                </ul>
+            {% endif %}
+        </div>
     {% endblock %}
 </div>
 </div>

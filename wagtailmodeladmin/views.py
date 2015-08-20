@@ -89,6 +89,40 @@ class BaseView(View):
     def get_base_queryset(self, request):
         return self.model_admin.get_queryset(request)
 
+
+class IndexView(BaseView):
+    def __init__(self, request, model_admin):
+        super(IndexView, self).__init__(request, model_admin)
+        self.list_display = model_admin.get_list_display(request)
+        self.list_filter = model_admin.get_list_filter(request)
+        self.search_fields = model_admin.get_search_fields(request)
+        self.items_per_page = model_admin.list_per_page
+        self.select_related = model_admin.list_select_related
+
+        # Get search parameters from the query string.
+        try:
+            self.page_num = int(request.GET.get(PAGE_VAR, 0))
+        except ValueError:
+            self.page_num = 0
+
+        self.params = dict(request.GET.items())
+        if PAGE_VAR in self.params:
+            del self.params[PAGE_VAR]
+        if ERROR_FLAG in self.params:
+            del self.params[ERROR_FLAG]
+
+        self.query = request.GET.get(SEARCH_VAR, '')
+        self.pk_attname = self.opts.pk.attname
+        self.queryset = self.get_queryset(request)
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.permission_helper.allow_list_view(request.user):
+            return permission_denied(request)
+        return super(IndexView, self).dispatch(request, *args, **kwargs)
+
+    def url_for_result(self, result):
+        raise NoReverseMatch
+
     def edit_button(self, obj):
         pk = getattr(obj, self.pk_attname)
         model_name = self.model_name.lower()
@@ -136,40 +170,6 @@ class BaseView(View):
         if self.permission_helper.can_delete_object(user, obj):
             buttons.append(self.delete_button(obj))
         return buttons
-
-
-class IndexView(BaseView):
-    def __init__(self, request, model_admin):
-        super(IndexView, self).__init__(request, model_admin)
-        self.list_display = model_admin.get_list_display(request)
-        self.list_filter = model_admin.get_list_filter(request)
-        self.search_fields = model_admin.get_search_fields(request)
-        self.items_per_page = model_admin.list_per_page
-        self.select_related = model_admin.list_select_related
-
-        # Get search parameters from the query string.
-        try:
-            self.page_num = int(request.GET.get(PAGE_VAR, 0))
-        except ValueError:
-            self.page_num = 0
-
-        self.params = dict(request.GET.items())
-        if PAGE_VAR in self.params:
-            del self.params[PAGE_VAR]
-        if ERROR_FLAG in self.params:
-            del self.params[ERROR_FLAG]
-
-        self.query = request.GET.get(SEARCH_VAR, '')
-        self.pk_attname = self.opts.pk.attname
-        self.queryset = self.get_queryset(request)
-
-    def dispatch(self, request, *args, **kwargs):
-        if not self.permission_helper.allow_list_view(request.user):
-            return permission_denied(request)
-        return super(IndexView, self).dispatch(request, *args, **kwargs)
-
-    def url_for_result(self, result):
-        raise NoReverseMatch
 
     def get_search_results(self, request, queryset, search_term):
         """
@@ -541,7 +541,6 @@ class IndexView(BaseView):
         queryset = self.get_queryset(request)
         result_count = queryset.count()
         paginator = Paginator(queryset, self.items_per_page)
-        multi_page = paginator.num_pages > 1
 
         # Get the list of objects to display on this page.
         try:
@@ -556,12 +555,11 @@ class IndexView(BaseView):
             'cl': self,
             'all_count': all_count,
             'result_count': result_count,
-            'multi_page': multi_page,
             'paginator': paginator,
             'page_obj': page_obj,
             'object_list': page_obj.object_list,
             'title': _('Listing of %s') % self.model_name_plural,
-            'show_add_button': user_can_add,
+            'has_add_permission': user_can_add,
             'media': self.model_admin.get_extra_media_for_list_view(request),
         })
 
@@ -589,6 +587,18 @@ class AddView(BaseView):
         if not self.permission_helper.has_add_permission(request.user):
             return permission_denied(request)
         return super(AddView, self).dispatch(request, *args, **kwargs)
+
+
+class EditView(BaseView):
+    pass
+
+
+class DeleteView(BaseView):
+    pass
+
+
+class UnpublishView(BaseView):
+    pass
 
 
 class ChooseParentPageView(BaseView):

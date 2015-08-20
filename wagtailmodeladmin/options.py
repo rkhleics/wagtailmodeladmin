@@ -12,7 +12,8 @@ from wagtail.wagtailcore.models import Page
 
 from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
-from .views import IndexView, AddView, ChooseParentPageView
+from .views import (
+    IndexView, AddView, ChooseParentPageView, DeleteView, EditView)
 
 
 class ModelAdmin(object):
@@ -105,7 +106,11 @@ class ModelAdmin(object):
         return self.search_fields or ()
 
     def get_url_pattern(self, function_name):
-        return r'^%s/%s/%s$' % (
+        return r'^modeladmin/%s/%s/%s$' % (
+            self.opts.app_label, self.opts.model_name, function_name)
+
+    def get_url_pattern_with_object_id(self, function_name):
+        return r'^modeladmin/%s/%s/%s/(?P<object_id>[-\w]+)$' % (
             self.opts.app_label, self.opts.model_name, function_name)
 
     def get_url_name(self, function_name):
@@ -122,8 +127,16 @@ class ModelAdmin(object):
                    name=self.get_url_name('choose_parent'))
 
     def get_add_url_definition(self):
-        pattern = self.get_url_pattern('modeladmin_add')
+        pattern = self.get_url_pattern('add')
         return url(pattern, self.add_view, name=self.get_url_name('add'))
+
+    def get_edit_url_definition(self):
+        pattern = self.get_url_pattern('edit')
+        return url(pattern, self.edit_view, name=self.get_url_name('edit'))
+
+    def get_delete_url_definition(self):
+        pattern = self.get_url_pattern('delete')
+        return url(pattern, self.delete_view, name=self.get_url_name('delete'))
 
     def get_index_url(self):
         return reverse(self.get_url_name('index'))
@@ -143,6 +156,8 @@ class ModelAdmin(object):
             self.get_index_url_definition(),
             self.get_add_url_definition(),
             self.get_choose_parent_page_url_definition(),
+            self.get_edit_url_definition(),
+            self.get_delete_url_definition(),
         ]
 
     def get_extra_media_for_list_view(self, request):
@@ -166,6 +181,12 @@ class ModelAdmin(object):
 
     def add_view(self, request):
         return AddView(request, self).dispatch(request)
+
+    def delete_view(self, request, object_id):
+        return DeleteView(request, self).dispatch(request, object_id)
+
+    def edit_view(self, request, object_id):
+        return EditView(request, self).dispatch(request, object_id)
 
     @csrf_protect_m
     def choose_parent_page_view(self, request):
