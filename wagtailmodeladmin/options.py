@@ -12,7 +12,7 @@ from wagtail.wagtailcore.models import Page
 
 from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
-from .views import ListView, AddView, ChooseParentPageView
+from .views import IndexView, AddView, ChooseParentPageView
 
 
 class ModelAdmin(object):
@@ -112,9 +112,9 @@ class ModelAdmin(object):
         return '%s_%s_modeladmin_%s' % (
             self.opts.app_label, self.opts.model_name, function_name)
 
-    def get_list_url_definition(self):
-        pattern = self.get_url_pattern('list')
-        return url(pattern, self.list_view, name=self.get_url_name('list'))
+    def get_index_url_definition(self):
+        pattern = self.get_url_pattern('index')
+        return url(pattern, self.index_view, name=self.get_url_name('index'))
 
     def get_choose_parent_page_url_definition(self):
         pattern = self.get_url_pattern('choose_parent')
@@ -125,8 +125,8 @@ class ModelAdmin(object):
         pattern = self.get_url_pattern('modeladmin_add')
         return url(pattern, self.add_view, name=self.get_url_name('add'))
 
-    def get_list_url(self):
-        return reverse(self.get_url_name('list'))
+    def get_index_url(self):
+        return reverse(self.get_url_name('index'))
 
     def get_choose_parent_page_url(self):
         return reverse(self.get_url_name('choose_parent'))
@@ -140,7 +140,7 @@ class ModelAdmin(object):
         our the views that class offers.
         """
         return [
-            self.get_list_url_definition(),
+            self.get_index_url_definition(),
             self.get_add_url_definition(),
             self.get_choose_parent_page_url_definition(),
         ]
@@ -161,8 +161,8 @@ class ModelAdmin(object):
         return {}
 
     @csrf_protect_m
-    def list_view(self, request):
-        return ListView(request, self).dispatch(request)
+    def index_view(self, request):
+        return IndexView(request, self).dispatch(request)
 
     def add_view(self, request):
         return AddView(request, self).dispatch(request)

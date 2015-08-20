@@ -33,7 +33,7 @@ from django.views.generic import View
 from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
 from .utils import permission_denied
 
-# ListView settings
+# IndexView settings
 ORDER_VAR = 'o'
 ORDER_TYPE_VAR = 'ot'
 PAGE_VAR = 'p'
@@ -80,7 +80,7 @@ class BaseView(View):
             'module_name_plural': self.model_name_plural,
             'module_icon': self.get_menu_icon(),
             'is_pagemodel': self.is_pagemodel,
-            'list_url': self.model_admin.get_list_url(),
+            'index_url': self.model_admin.get_index_url(),
             'add_url': self.model_admin.get_add_url(),
         }
         context.update(self.model_admin.get_extra_context_data(request))
@@ -138,9 +138,9 @@ class BaseView(View):
         return buttons
 
 
-class ListView(BaseView):
+class IndexView(BaseView):
     def __init__(self, request, model_admin):
-        super(ListView, self).__init__(request, model_admin)
+        super(IndexView, self).__init__(request, model_admin)
         self.list_display = model_admin.get_list_display(request)
         self.list_filter = model_admin.get_list_filter(request)
         self.search_fields = model_admin.get_search_fields(request)
@@ -166,7 +166,7 @@ class ListView(BaseView):
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.allow_list_view(request.user):
             return permission_denied(request)
-        return super(ListView, self).dispatch(request, *args, **kwargs)
+        return super(IndexView, self).dispatch(request, *args, **kwargs)
 
     def url_for_result(self, result):
         raise NoReverseMatch
