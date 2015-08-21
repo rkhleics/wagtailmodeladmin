@@ -33,14 +33,12 @@
             <div class="col">
                 <h1 class="icon {{ module_icon }}">{% blocktrans with module_name|title as name %}Add {{ name }}{% endblocktrans %}</h1>
             </div>
-            
-        </div>
-        <div class="right">
         </div>
     </div>
     </header>
     <div class="nice-padding">
-        {% if form %}
+        <h2>{% trans 'Where should it live?' %}</h2>
+        <p>{% blocktrans with module_name_plural|title as plural and module_name|title as singular %}{{ plural }} can be added to more than one place within your site. Please tell us where you'd like this new {{ singular }} to live...{% endblocktrans %}</p>
         <form action="" method="POST">
             {% csrf_token %}
             <ul class="fields">
@@ -51,23 +49,8 @@
                 </li>
                 {% endfor %}
                 <li><input type="submit" class="button" value="{% trans 'Continue' %}"></li>
-            </ul>
-            
+            </ul>            
         </form>
-        {% else %}
-            <h2>{% blocktrans with module_name_plural as name %}Sorry, {{ name }} can't be added just yet...{% endblocktrans %}</h2>
-            <p>{{ no_valid_parents_message|capfirst }}</p>
-            {% if parent_types %}
-                <ul>
-                    {% for type in parent_types %}
-                    <li>{{ type|capfirst }}</li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p><strong>No page types found!</strong></p>
-            {% endif %}
-            <p style="padding-top:20px"><a href="{% url 'wagtailadmin_explore_root' %}" class="button">{% trans 'Manage pages' %}</a></p>
-        {% endif %}
     </div>
 </div>
 {% endblock %}

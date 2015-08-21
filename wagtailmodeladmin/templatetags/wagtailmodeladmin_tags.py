@@ -20,22 +20,21 @@ from ..views import PAGE_VAR, SEARCH_VAR
 register = Library()
 
 
-def items_for_result(cl, result):
+def items_for_result(indexview, result):
     """
     Generates the actual list of data.
     """
-    for field_name in cl.list_display:
+    model_admin = indexview.model_admin
+    for field_name in indexview.list_display:
         empty_value_display = ''
         row_classes = ['field-%s' % field_name]
         try:
-            f, attr, value = lookup_field(field_name, result, cl.model_admin)
+            f, attr, value = lookup_field(field_name, result, model_admin)
         except ObjectDoesNotExist:
             result_repr = empty_value_display
         else:
             empty_value_display = getattr(attr, 'empty_value_display', empty_value_display)
             if f is None or f.auto_created:
-                if field_name == 'action_checkbox':
-                    row_classes = ['action-checkbox']
                 allow_tags = getattr(attr, 'allow_tags', False)
                 boolean = getattr(attr, 'boolean', False)
                 if boolean or not value:
@@ -64,18 +63,18 @@ def items_for_result(cl, result):
         yield format_html('<td{}>{}</td>', row_class, result_repr)
 
 
-def results(cl, object_list):
-    for res in object_list:
-        yield ResultList(None, items_for_result(cl, res))
+def results(indexview, object_list):
+    for item in object_list:
+        yield ResultList(None, items_for_result(indexview, item))
 
 
 @register.inclusion_tag("wagtailmodeladmin/includes/result_list.html",
                         takes_context=True)
-def result_list(context, cl, object_list):
+def result_list(context, indexview, object_list):
     """
     Displays the headers and data list together
     """
-    headers = list(result_headers(cl))
+    headers = list(result_headers(indexview))
     num_sorted_fields = 0
     for h in headers:
         if h['sortable'] and h['sorted']:
@@ -83,50 +82,50 @@ def result_list(context, cl, object_list):
     context.update({
         'result_headers': headers,
         'num_sorted_fields': num_sorted_fields,
-        'results': list(results(cl, object_list))})
+        'results': list(results(indexview, object_list))})
     return context
 
 
 @register.simple_tag
-def pagination_link_previous(cl, current_page):
+def pagination_link_previous(current_page, indexview):
     if current_page.has_previous():
         previous_page_number0 = current_page.previous_page_number() - 1
         return format_html(
             '<li class="prev"><a href="%s" class="icon icon-arrow-left">%s</a></li>' %
-            (cl.get_query_string({PAGE_VAR: previous_page_number0}), _('Previous'))
+            (indexview.get_query_string({PAGE_VAR: previous_page_number0}), _('Previous'))
         )
     return ''
 
 
 @register.simple_tag
-def pagination_link_next(cl, current_page):
+def pagination_link_next(current_page, indexview):
     if current_page.has_next():
         next_page_number0 = current_page.next_page_number() - 1
         return format_html(
             '<li class="next"><a href="%s" class="icon icon-arrow-right-after">%s</a></li>' %
-            (cl.get_query_string({PAGE_VAR: next_page_number0}), _('Next'))
+            (indexview.get_query_string({PAGE_VAR: next_page_number0}), _('Next'))
         )
     return ''
 
 
 @register.inclusion_tag("wagtailmodeladmin/includes/search_form.html")
-def search_form(cl):
+def search_form(indexview):
     return {
-        'cl': cl,
+        'indexview': indexview,
         'search_var': SEARCH_VAR,
     }
 
 
 @register.simple_tag
-def admin_list_filter(cl, spec):
-    return djangoadmin_list_filter(cl, spec)
+def admin_list_filter(indexview, spec):
+    return djangoadmin_list_filter(indexview, spec)
 
 
 @register.inclusion_tag("wagtailmodeladmin/includes/result_row.html",
                         takes_context=True)
-def result_row_display(context, cl, object_list, result, index):
+def result_row_display(context, indexview, object_list, result, index):
     obj = list(object_list)[index]
-    buttons = cl.get_action_buttons_for_obj(context['request'].user, obj)
+    buttons = indexview.get_action_buttons_for_obj(context['request'].user, obj)
     context.update({
         'obj': obj,
         'action_buttons': buttons,
@@ -136,7 +135,6 @@ def result_row_display(context, cl, object_list, result, index):
 
 @register.inclusion_tag("wagtailmodeladmin/includes/result_row_value.html")
 def result_row_value_display(item, obj, action_buttons, index=0):
-
     add_action_buttons = False
     closing_tag = mark_safe(item[-5:])
 

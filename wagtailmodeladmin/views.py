@@ -7,9 +7,10 @@ from django.db import models
 from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
+from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.http import HttpResponseRedirect
-from django.forms import Form, Media, ModelChoiceField
+from django.forms import Form, ModelChoiceField, RadioSelect
 
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.core.exceptions import (
@@ -53,6 +54,8 @@ class BaseView(View):
             self.permission_helper = PagePermissionHelper(self.model)
         else:
             self.permission_helper = ModelPermissionHelper(self.model)
+        from wagtail.wagtailsnippets.models import SNIPPET_MODELS
+        self.is_snippetmodel = bool(model_admin.model in SNIPPET_MODELS)
 
     @cached_property
     def app_label(self):
@@ -90,6 +93,26 @@ class BaseView(View):
         return self.model_admin.get_queryset(request)
 
 
+class ObjectSpecificMixin(object):
+
+    def prime_session_for_redirection(self, request):
+        request.session['return_to_index_url'] = self.model_admin.get_index_url()
+
+    def check_action_permitted(self, user, obj):
+        return True
+
+    def pre_dispatch_checks(self, request, object_id):
+        pk = quote(object_id)
+        filter_kwargs = {}
+        filter_kwargs[self.opts.pk.attname] = pk
+        obj = get_object_or_404(self.model.objects.filter(**filter_kwargs))
+        if not self.check_action_permitted(request.user, obj):
+            return permission_denied(request)
+        self.prime_session_for_redirection(request)
+        setattr(self, 'pk', pk)
+        setattr(self, 'obj', obj)
+
+
 class IndexView(BaseView):
     def __init__(self, request, model_admin):
         super(IndexView, self).__init__(request, model_admin)
@@ -124,39 +147,28 @@ class IndexView(BaseView):
         raise NoReverseMatch
 
     def edit_button(self, obj):
-        pk = getattr(obj, self.pk_attname)
-        model_name = self.model_name.lower()
-        if self.is_pagemodel:
-            url = reverse('wagtailadmin_pages_edit', args=(quote(pk),))
-        else:
-            url_args = (self.opts.app_label, self.opts.model_name, quote(pk))
-            url = reverse('wagtailsnippets_edit', args=url_args,)
+        pk = quote(getattr(obj, self.pk_attname))
+        url = reverse(self.model_admin.get_url_name('edit'), args=(pk,))
         return {
-            'title': _('Edit this %(mn)s') % {'mn': model_name},
+            'title': _('Edit this %(mn)s') % {'mn': self.model_name},
             'label': _('Edit'),
             'url': url,
         }
 
     def delete_button(self, obj):
-        pk = getattr(obj, self.pk_attname)
-        model_name = self.model_name.lower()
-        if self.is_pagemodel:
-            url = reverse('wagtailadmin_pages_delete', args=(quote(pk),))
-        else:
-            url_args = (self.opts.app_label, self.opts.model_name, quote(pk))
-            url = reverse('wagtailsnippets_delete', args=url_args,)
+        pk = quote(getattr(obj, self.pk_attname))
+        url = reverse(self.model_admin.get_url_name('delete'), args=(pk,))
         return {
-            'title': _('Delete this %(mn)s') % {'mn': model_name},
+            'title': _('Delete this %(mn)s') % {'mn': self.model_name},
             'label': _('Delete'),
             'url': url,
         }
 
     def unpublish_button(self, obj):
-        pk = getattr(obj, self.pk_attname)
-        model_name = self.model_name.lower()
-        url = reverse('wagtailadmin_pages_unpublish', args=(quote(pk),))
+        pk = quote(getattr(obj, self.pk_attname))
+        url = reverse(self.model_admin.get_url_name('unpublish'), args=(pk,))
         return {
-            'title': _('Unpublish this %(mn)s') % {'mn': model_name},
+            'title': _('Unpublish this %(mn)s') % {'mn': self.model_name},
             'label': _('Unpublish'),
             'url': url,
         }
@@ -552,7 +564,7 @@ class IndexView(BaseView):
 
         context = self.get_context_data(request, *args, **kwargs)
         context.update({
-            'cl': self,
+            'indexview': self,
             'all_count': all_count,
             'result_count': result_count,
             'paginator': paginator,
@@ -560,7 +572,7 @@ class IndexView(BaseView):
             'object_list': page_obj.object_list,
             'title': _('Listing of %s') % self.model_name_plural,
             'has_add_permission': user_can_add,
-            'media': self.model_admin.get_extra_media_for_list_view(request),
+            'media': self.model_admin.get_extra_list_view_media(request),
         })
 
         if self.is_pagemodel:
@@ -588,25 +600,122 @@ class AddView(BaseView):
             return permission_denied(request)
         return super(AddView, self).dispatch(request, *args, **kwargs)
 
+    def get(self, request, *args, **kwargs):
+        if self.is_pagemodel:
+            valid_parents = self.permission_helper.get_valid_parent_pages(request.user)
+            valid_parent_count = valid_parents.count()
 
-class EditView(BaseView):
-    pass
+            if valid_parent_count == 1:
+                parent = valid_parents.get()
+                url_args = [self.opts.app_label, self.opts.model_name, parent.pk]
+                return HttpResponseRedirect(
+                    reverse('wagtailadmin_pages_create', args=url_args))
 
-
-class DeleteView(BaseView):
-    pass
-
-
-class UnpublishView(BaseView):
-    pass
+            return HttpResponseRedirect(self.model_admin.get_choose_parent_page_url())
+        if self.is_snippetmodel:
+            url_args = [self.opts.app_label, self.opts.model_name]
+            return HttpResponseRedirect(
+                reverse('wagtailsnippets_create', args=url_args))
 
 
 class ChooseParentPageView(BaseView):
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.has_add_permission(request.user):
             return permission_denied(request)
-        return super(ChooseParentPageView, self).dispatch(request, *args,
-                                                          **kwargs)
+        return super(ChooseParentPageView, self).dispatch(request, *args, **kwargs)
+
+    def get_parent_chooser_form(self, request):
+        parents = self.permission_helper.get_valid_parent_pages(request.user)
+
+        class CustomModelChoiceField(ModelChoiceField):
+            def label_from_instance(self, obj):
+                bits = []
+                root_page = obj.get_ancestors().get(
+                    sites_rooted_here__isnull=False)
+                ancestors = obj.get_ancestors(inclusive=True)
+                for ancestor in ancestors.descendant_of(root_page, inclusive=True):
+                    bits.append(ancestor.title)
+                return ' > '.join(bits)
+
+        class ParentChooserForm(Form):
+            parent_page = CustomModelChoiceField(
+                label=_('Put it under'),
+                required=True,
+                empty_label=None,
+                queryset=parents,
+                widget=RadioSelect(),
+            )
+
+        return ParentChooserForm(request.POST or None)
+
+    def get(self, request, *args, **kwargs):
+        context_data = self.get_context_data(request)
+        form = self.get_parent_chooser_form(request)
+        context_data.update({
+            'form': form,
+            'media': form.media,
+        })
+        return TemplateResponse(request, self.get_template(), context_data)
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_parent_chooser_form(request)
+        if form.is_valid():
+            parent = form.cleaned_data['parent_page']
+            url_args = [
+                self.opts.app_label,
+                self.opts.model_name,
+                quote(parent.pk)]
+            return HttpResponseRedirect(
+                reverse('wagtailadmin_pages_create', args=(
+                    self.opts.app_label,
+                    self.opts.model_name,
+                    quote(parent.pk))
+                )
+            )
+        return self.get(request, *args, **kwargs)
+
 
     def get_template(self):
         return self.model_admin.get_choose_parent_page_template()
+
+
+class EditView(ObjectSpecificMixin, BaseView):
+    def check_action_permitted(self, user, obj):
+        return self.permission_helper.can_edit_object(user, obj)
+
+    def dispatch(self, request, object_id, *args, **kwargs):
+        self.pre_dispatch_checks(request, object_id)
+        if self.is_pagemodel:
+            return HttpResponseRedirect(
+                reverse('wagtailadmin_pages_edit', args=(self.pk,)))
+        elif self.is_snippetmodel:
+            url_args = (self.app_label, self.model_name, self.pk)
+            return HttpResponseRedirect(
+                reverse('wagtailsnippets_edit', args=url_args))
+        return super(EditView, self).dispatch(request, *args, **kwargs)
+
+
+class DeleteView(ObjectSpecificMixin, BaseView):
+    def check_action_permitted(self, user, obj):
+        return self.permission_helper.can_delete_object(user, obj)
+
+    def dispatch(self, request, object_id, *args, **kwargs):
+        self.pre_dispatch_checks(request, object_id)
+        if self.is_pagemodel:
+            return HttpResponseRedirect(
+                reverse('wagtailadmin_pages_delete', args=(self.pk,)))
+        elif self.is_snippetmodel:
+            url_args = (self.app_label, self.model_name, self.pk)
+            return HttpResponseRedirect(
+                reverse('wagtailsnippets_delete', args=url_args))
+        return super(DeleteView, self).dispatch(request, *args, **kwargs)
+
+
+class UnpublishView(ObjectSpecificMixin, BaseView):
+    def check_action_permitted(self, user, obj):
+        return self.permission_helper.can_unpublish_object(user, obj)
+
+    def dispatch(self, request, object_id, *args, **kwargs):
+        self.pre_dispatch_checks(request, object_id)
+        return HttpResponseRedirect(
+            reverse('wagtailadmin_pages_unpublish', args=(self.pk,)))

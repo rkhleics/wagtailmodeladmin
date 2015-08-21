@@ -17,13 +17,13 @@ class ModelAdminMiddleware(object):
 
     def process_request(self, request):
         referer_url = request.META.get('HTTP_REFERER')
-        return_to_list_url = request.session.get('return_to_list_url')
+        return_to_index_url = request.session.get('return_to_index_url')
 
         """
         There's no point doing anything unless we have a referer_url,
-        and return_to_list_url has been set
+        and return_to_index_url has been set
         """
-        if referer_url and return_to_list_url:
+        if referer_url and return_to_index_url:
 
             try:
                 resolver_match = resolve(request.path)
@@ -39,7 +39,8 @@ class ModelAdminMiddleware(object):
                         'wagtailsnippets_edit',
                         'wagtailsnippets_delete',
                     ):
-                        return HttpResponseRedirect(return_to_list_url)
+                        del request.session['return_to_index_url']
+                        return HttpResponseRedirect(return_to_index_url)
             except Resolver404:
                 pass
 
