@@ -771,8 +771,8 @@ class ChooseParentPageView(BaseView):
         form = self.get_form(request)
         if form.is_valid():
             parent = form.cleaned_data['parent_page']
-            return redirect('wagtailadmin_pages_create', args=(
-                self.opts.app_label, self.opts.model_name, quote(parent.pk)))
+            return redirect('wagtailadmin_pages_create', self.opts.app_label,
+                            self.opts.model_name, quote(parent.pk))
 
         context = {'view': self, 'form': form}
         return render(request, self.get_template(), context)
