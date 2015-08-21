@@ -25,12 +25,11 @@ class GroupMenuItem(SubmenuMenuItem):
     link to the admin menu with it's own submenu, linking to various listing
     pages
     """
-    def __init__(self, modeladmingroup, order, submenu):
-        self.menu = submenu
+    def __init__(self, modeladmingroup, order, menu):
         classnames = 'icon icon-%s' % modeladmingroup.get_menu_icon()
         super(GroupMenuItem, self).__init__(
-            label=modeladmingroup.get_menu_lable(), url='#',
-            classnames=classnames, order=order)
+            label=modeladmingroup.get_menu_label(), menu=menu,
+            classnames=classnames, order=order, )
 
     def is_shown(self, request):
         """

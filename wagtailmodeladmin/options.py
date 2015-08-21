@@ -1,4 +1,5 @@
 from django.db.models import Model
+from django.contrib.auth.models import Permission
 from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
@@ -10,10 +11,10 @@ csrf_protect_m = method_decorator(csrf_protect)
 from wagtail.wagtailcore.models import Page
 
 from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
-from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
+from .permission_helpers import PermissionHelper, PagePermissionHelper
 from .views import (
     IndexView, CreateView, ChooseParentPageView, EditView, DeleteView,
-    UnpublishView)
+    CopyView, UnpublishView)
 from .utils import (
     get_url_pattern, get_object_specific_url_pattern, get_url_name)
 
@@ -51,7 +52,7 @@ class ModelAdmin(object):
         if self.is_pagemodel:
             self.permission_helper = PagePermissionHelper(self.model)
         else:
-            self.permission_helper = ModelPermissionHelper(self.model)
+            self.permission_helper = PermissionHelper(self.model)
 
     def get_menu_label(self):
         return self.menu_label or self.opts.verbose_name_plural.title()
@@ -117,6 +118,78 @@ class ModelAdmin(object):
     def get_create_url(self):
         return reverse(get_url_name(self.opts, 'create'))
 
+    @csrf_protect_m
+    def index_view(self, request):
+        return IndexView(request, self).dispatch(request)
+
+    @csrf_protect_m
+    def create_view(self, request):
+        return CreateView(request, self).dispatch(request)
+
+    @csrf_protect_m
+    def edit_view(self, request, object_id):
+        return EditView(request, self).dispatch(request, object_id)
+
+    @csrf_protect_m
+    def delete_view(self, request, object_id):
+        return DeleteView(request, self).dispatch(request, object_id)
+
+    @csrf_protect_m
+    def choose_parent_page_view(self, request):
+        return ChooseParentPageView(request, self).dispatch(request)
+
+    def unpublish_view(self, request, object_id):
+        return UnpublishView(request, self).dispatch(request, object_id)
+
+    def copy_view(self, request, object_id):
+        return CopyView(request, self).dispatch(request, object_id)
+
+    def get_template_list_for_action(self, action='index'):
+        app = self.opts.app_label
+        model_name = self.opts.model_name
+        return [
+            'wagtailmodeladmin/%s/%s/%s.html' % (app, model_name, action),
+            'wagtailmodeladmin/%s/%s.html' % (app, action),
+            'wagtailmodeladmin/%s.html' % (action,),
+        ]
+
+    def get_index_template(self):
+        return self.get_template_list_for_action('index')
+
+    def get_choose_parent_page_template(self):
+        return self.get_template_list_for_action('choose_parent_page')
+
+    def get_create_template(self):
+        return self.get_template_list_for_action('create')
+
+    def get_edit_template(self):
+        return self.get_template_list_for_action('edit')
+
+    def get_delete_template(self):
+        return self.get_template_list_for_action('confirm_delete')
+
+    def get_menu_item(self, order=None):
+        """
+        Utilised by Wagtail's 'register_menu_item' hook to create a menu item
+        to access the listing view, or can be called by ModelAdminGroup
+        to create a SubMenu
+        """
+        return ModelAdminMenuItem(self, order or self.get_menu_order())
+
+    def get_permissions_for_registration(self):
+        """
+        Utilised by Wagtail's 'register_permissions' hook to allow permissions
+        for a model to be assigned to groups in settings. This is only required
+        if the model isn't a Page model, and isn't registered as a Snippet
+        """
+        from wagtail.wagtailsnippets.models import SNIPPET_MODELS
+        if not self.is_pagemodel and self.model not in SNIPPET_MODELS:
+            return Permission.objects.filter(
+                content_type__app_label=self.opts.app_label,
+                content_type__model=self.opts.model_name,
+            )
+        return Permission.objects.none()
+
     def get_admin_urls_for_registration(self):
         """
         Utilised by Wagtail's 'register_admin_urls' hook to register urls for
@@ -146,58 +219,11 @@ class ModelAdmin(object):
             url(get_object_specific_url_pattern(self.opts, 'unpublish'),
                 self.unpublish_view,
                 name=get_url_name(self.opts, 'unpublish')),
+
+            url(get_object_specific_url_pattern(self.opts, 'copy'),
+                self.copy_view,
+                name=get_url_name(self.opts, 'copy')),
         ]
-
-    @csrf_protect_m
-    def index_view(self, request):
-        return IndexView(request, self).dispatch(request)
-
-    def create_view(self, request):
-        return CreateView(request, self).dispatch(request)
-
-    def edit_view(self, request, object_id):
-        return EditView(request, self).dispatch(request, object_id)
-
-    def delete_view(self, request, object_id):
-        return DeleteView(request, self).dispatch(request, object_id)
-
-    def unpublish_view(self, request, object_id):
-        return UnpublishView(request, self).dispatch(request, object_id)
-
-    @csrf_protect_m
-    def choose_parent_page_view(self, request):
-        return ChooseParentPageView(request, self).dispatch(request)
-
-    def get_menu_item(self, order=None):
-        """
-        Utilised by Wagtail's 'register_menu_item' hook to create a menu item
-        to access the listing view, or can be called by ModelAdminGroup
-        to create a SubMenu
-        """
-        return ModelAdminMenuItem(self, order or self.get_menu_order())
-
-    def get_standard_template_list_for_action(self, action='index'):
-        opts = self.opts
-        return [
-            'wagtailmodeladmin/%s/%s/%s.html' % (opts.app_label, opts.model_name, action),
-            'wagtailmodeladmin/%s/%s.html' % (opts.app_label, action),
-            'wagtailmodeladmin/%s.html' % (action,),
-        ]
-
-    def get_index_template(self):
-        return self.get_standard_template_list_for_action('index')
-
-    def get_choose_parent_page_template(self):
-        return self.get_standard_template_list_for_action('choose_parent_page')
-
-    def get_create_template(self):
-        return self.get_standard_template_list_for_action('create')
-
-    def get_edit_template(self):
-        return self.get_standard_template_list_for_action('edit')
-
-    def get_delete_template(self):
-        return self.get_standard_template_list_for_action('confirm_delete')
 
 
 class ModelAdminGroup(object):
@@ -247,23 +273,25 @@ class ModelAdminGroup(object):
                 item_order += 1
                 menu_items.append(modeladmin.get_menu_item(order=item_order))
             submenu = SubMenu(menu_items)
-            return GroupMenuItem(self.get_menu_label(), self.get_menu_icon(),
-                                 self.get_menu_order(), submenu)
+            return GroupMenuItem(self, self.get_menu_order(), submenu)
+
+    def get_permissions_for_registration(self):
+        """
+        Utilised by Wagtail's 'register_permissions' hook to allow permissions
+        for a all models grouped by this class to be assigned to Groups in
+        settings.
+        """
+        qs = Permission.objects.none()
+        for instance in self.modeladmin_instances:
+            qs = qs | instance.get_permissions_for_registration()
+        return qs
 
     def get_admin_urls_for_registration(self):
         """
         Utilised by Wagtail's 'register_admin_urls' hook to register urls for
-        used by any associated PageModelAdmin or SnippetModelAdmin instances
+        used by any associated ModelAdmin instances
         """
         urls = []
         for instance in self.modeladmin_instances:
             urls.extend(instance.get_admin_urls_for_registration())
         return urls
-
-
-class PageModelAdmin(ModelAdmin):
-    pass
-
-
-class SnippetModelAdmin(ModelAdmin):
-    pass

@@ -67,14 +67,23 @@ class ActionButtonHelper(object):
             'url': self.get_action_url('unpublish'),
         }
 
+    def copy_button(self):
+        return {
+            'title': _('Copy this %s') % self.model_name,
+            'label': _('Copy'),
+            'url': self.get_action_url('copy'),
+        }
+
     def get_permitted_buttons(self):
         user = self.user
         obj = self.obj
         buttons = []
         if self.permission_helper.can_edit_object(user, obj):
             buttons.append(self.edit_button())
-        if self.permission_helper.can_unpublish_object(user, obj):
-            buttons.append(self.unpublish_button())
+        if self.permission_helper.can_copy_object(user, obj):
+            buttons.append(self.copy_button())
         if self.permission_helper.can_delete_object(user, obj):
             buttons.append(self.delete_button())
+        if self.permission_helper.can_unpublish_object(user, obj):
+            buttons.append(self.unpublish_button())
         return buttons

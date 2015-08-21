@@ -33,7 +33,7 @@ from wagtail.wagtailadmin import messages
 from wagtail.wagtailadmin.edit_handlers import (
     ObjectList, extract_panel_definitions_from_model_class)
 
-from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
+from .permission_helpers import PermissionHelper, PagePermissionHelper
 from .utils import get_url_name, ActionButtonHelper, permission_denied
 from .forms import ParentChooserForm
 
@@ -47,6 +47,9 @@ IGNORED_PARAMS = (ORDER_VAR, ORDER_TYPE_VAR, SEARCH_VAR)
 
 
 class BaseView(View):
+    """
+    Groups together common functionality for all app views.
+    """
     def __init__(self, request, model_admin):
         self.request = request
         self.model_admin = model_admin
@@ -57,7 +60,7 @@ class BaseView(View):
         if self.is_pagemodel:
             self.permission_helper = PagePermissionHelper(self.model)
         else:
-            self.permission_helper = ModelPermissionHelper(self.model)
+            self.permission_helper = PermissionHelper(self.model)
 
     @cached_property
     def app_label(self):
@@ -83,7 +86,6 @@ class BaseView(View):
     def menu_icon(self):
         return self.model_admin.get_menu_icon()
 
-    @cached_property
     def header_icon(self):
         return self.menu_icon
 
@@ -94,23 +96,13 @@ class BaseView(View):
         return reverse(get_url_name(self.opts, 'delete'), args=(obj.pk,))
 
     def prime_session_for_redirection(self, request):
-        index_url = self.model_admin.get_index_url()
-        request.session['return_to_index_url'] = index_url
+        request.session['return_to_index_url'] = self.get_index_url()
 
     def page_title(self):
-        return _('Managing %s') % self.model_name_plural
+        return self.model_name_plural
 
-    def get_context_data(self, request, *args, **kwargs):
-        if self.model_admin.parent:
-            app_label = self.model_admin.parent.get_menu_label().lower()
-        else:
-            app_label = self.app_label
-        context = {
-            'app_label': app_label,
-            'module_name': self.model_name,
-            'module_name_plural': self.model_name_plural,
-        }
-        return context
+    def meta_title(self):
+        return self.page_title
 
     def get_base_queryset(self, request):
         return self.model_admin.get_queryset(request)
@@ -557,30 +549,28 @@ class IndexView(BaseView):
                     return True
         return False
 
-    def get(self, request, *args, **kwargs):
+    def get_context_data(self, request, *args, **kwargs):
+        user = request.user
+        has_add_permission = self.permission_helper.has_add_permission(user)
         all_count = self.get_base_queryset(request).count()
         queryset = self.get_queryset(request)
         result_count = queryset.count()
         paginator = Paginator(queryset, self.items_per_page)
 
-        # Get the list of objects to display on this page.
         try:
             page_obj = paginator.page(self.page_num + 1)
         except InvalidPage:
             page_obj = paginator.page(1)
 
-        user_can_add = self.permission_helper.has_add_permission(request.user)
-
-        context = self.get_context_data(request, *args, **kwargs)
-        context.update({
+        context = {
             'view': self,
             'all_count': all_count,
             'result_count': result_count,
             'paginator': paginator,
             'page_obj': page_obj,
             'object_list': page_obj.object_list,
-            'has_add_permission': user_can_add,
-        })
+            'has_add_permission': has_add_permission,
+        }
 
         if self.is_pagemodel:
             allowed_parent_types = self.model.allowed_parent_page_types()
@@ -591,10 +581,12 @@ class IndexView(BaseView):
                 'no_valid_parents': not valid_parent_count,
                 'required_parent_types': allowed_parent_types,
             })
+        return context
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(request, *args, **kwargs)
         if request.session.get('return_to_index_url'):
             del(request.session['return_to_index_url'])
-
         return render(request, self.get_template(), context)
 
     def get_template(self):
@@ -624,6 +616,9 @@ class CreateView(ModelFormMixin, BaseView):
             return redirect(self.model_admin.get_choose_parent_page_url())
         return super(CreateView, self).dispatch(request, *args, **kwargs)
 
+    def meta_title(self):
+        return _('Create new %s') % self.model_name.lower()
+
     def page_title(self):
         return _('New')
 
@@ -641,8 +636,8 @@ class CreateView(ModelFormMixin, BaseView):
         return self.get_edit_url(instance)
 
     def error_msg(self, instance):
-        return _("The {model} could not be created due to errors.").format(
-            model=self.model_name),
+        model_name = self.model_name.lower()
+        return _("The %s could not be created due to errors.") % model_name
 
     def get(self, request, *args, **kwargs):
         instance = self.get_instance()
@@ -659,7 +654,7 @@ class CreateView(ModelFormMixin, BaseView):
                 ]
             )
             return redirect(self.get_index_url)
-        else:
+        elif request.POST:
             messages.error(request, self.error_msg(instance))
 
         context = {
@@ -681,6 +676,9 @@ class EditView(ObjectActionMixin, CreateView):
         if self.is_pagemodel:
             return redirect('wagtailadmin_pages_edit', self.pk)
         return super(CreateView, self).dispatch(request, *args, **kwargs)
+
+    def meta_title(self):
+        return _('Editing %s') % self.model_name.lower()
 
     def page_title(self):
         return _('Editing')
@@ -715,6 +713,9 @@ class DeleteView(ObjectActionMixin, BaseView):
         if self.is_pagemodel:
             return redirect('wagtailadmin_pages_delete', self.pk)
         return super(DeleteView, self).dispatch(request, *args, **kwargs)
+
+    def meta_title(self):
+        return _('Confirm deletion of %s') % self.model_name.lower()
 
     def page_title(self):
         return _('Delete')
@@ -754,11 +755,21 @@ class UnpublishView(ObjectActionMixin, BaseView):
         return redirect('wagtailadmin_pages_unpublish', self.pk)
 
 
+class CopyView(ObjectActionMixin, BaseView):
+    def check_action_permitted(self, user, obj):
+        return self.permission_helper.can_copy_object(user, obj)
+
+    def dispatch(self, request, object_id, *args, **kwargs):
+        self.pre_dispatch_checks(request, object_id)
+        return redirect('wagtailadmin_pages_copy', self.pk)
+
+
 class ChooseParentPageView(BaseView):
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.has_add_permission(request.user):
             return permission_denied(request)
-        return self.get(request, *args, **kwargs)
+        return super(ChooseParentPageView, self).dispatch(request, *args,
+                                                          **kwargs)
 
     def page_title(self):
         return _('Add %s') % self.model_name

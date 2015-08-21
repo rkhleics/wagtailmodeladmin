@@ -1,7 +1,7 @@
 {% extends "wagtailadmin/base.html" %}
 {% load i18n wagtailadmin_tags compress admin_urls admin_static wagtailmodeladmin_tags %}
 
-{% block titletag %}{{ view.page_title }}{% endblock %}
+{% block titletag %}{{ view.meta_title }}{% endblock %}
 
 {% block content %}
 <div id="content-main">

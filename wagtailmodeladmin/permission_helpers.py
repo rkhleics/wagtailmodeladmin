@@ -2,7 +2,7 @@ from django.contrib.auth import get_permission_codename
 from wagtail.wagtailcore.models import Page
 
 
-class ModelPermissionHelper(object):
+class PermissionHelper(object):
     """
     Provides permission-related helper functions to effectively control what
     what a user can and can't do to instances of a 'typical' model, where
@@ -63,6 +63,13 @@ class ModelPermissionHelper(object):
         """
         return False
 
+    def can_copy_object(self, user, obj):
+        """
+        'Copying' isn't really a valid option for models not extending
+        Page, so we always return False
+        """
+        return False
+
     def allow_list_view(self, user):
         """
         For typical models, we only want to allow viewing of the list page
@@ -77,7 +84,7 @@ class ModelPermissionHelper(object):
         return False
 
 
-class PagePermissionHelper(object):
+class PagePermissionHelper(PermissionHelper):
     """
     Provides permission-related helper functions to effectively control what
     what a user can and can't do to instances of a model extending Wagtail's
@@ -85,10 +92,6 @@ class PagePermissionHelper(object):
     model-wide permissions aren't really relevant. We generally need to
     determine things on an object-specific basis.
     """
-
-    def __init__(self, model):
-        self.model = model
-        self.opts = model._meta
 
     def has_add_permission(self, user):
         """
@@ -132,6 +135,10 @@ class PagePermissionHelper(object):
     def can_unpublish_object(self, user, obj):
         perms = obj.permissions_for_user(user)
         return obj.live and perms.can_unpublish()
+
+    def can_copy_object(self, user, obj):
+        parent_page = obj.get_parent()
+        return parent_page.permissions_for_user(user).can_publish_subpage()
 
     def allow_list_view(self, user):
         """

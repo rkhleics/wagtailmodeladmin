@@ -1,7 +1,7 @@
 {% extends "wagtailadmin/base.html" %}
 {% load i18n wagtailadmin_tags compress admin_urls admin_static wagtailmodeladmin_tags %}
 
-{% block titletag %}{{ view.page_title }}{% endblock %}
+{% block titletag %}{{ view.meta_title }}{% endblock %}
 
 {% block css %}
     {{ block.super }}
@@ -19,14 +19,14 @@
     <div class="row">
         <div class="left">
             <div class="col">
-                <h1 {% if view.header_icon %}class="icon icon-{{ view.header_icon }}"{% endif %}>{{ module_name_plural|title }}<span></span></h1>
+                <h1 {% if view.header_icon %}class="icon icon-{{ view.header_icon }}"{% endif %}>{{ view.model_name_plural }}<span></span></h1>
             </div>
             {% block search %}{% search_form view %}{% endblock %}
         </div>
         {% if has_add_permission %}
         <div class="right">
             <div class="addbutton">
-                <a href="{{ view.get_create_url }}" class="button bicolor icon icon-plus">{% blocktrans with module_name as name %}Add {{ name }}{% endblocktrans %}</a>
+                <a href="{{ view.get_create_url }}" class="button bicolor icon icon-plus">{% blocktrans with view.model_name as name %}Add {{ name }}{% endblocktrans %}</a>
             </div>
         </div>
         {% endif %}
