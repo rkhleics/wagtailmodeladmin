@@ -7,10 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
-from django.shortcuts import get_object_or_404
-from django.template.response import TemplateResponse
-from django.http import HttpResponseRedirect
-from django.forms import Form, ModelChoiceField, RadioSelect
+from django.shortcuts import get_object_or_404, redirect, render
 
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.core.exceptions import (
@@ -27,12 +24,18 @@ from django.contrib.admin.utils import (
 from django.utils import six
 from django.utils.translation import ugettext as _
 from django.utils.encoding import force_text
+from django.utils.text import capfirst
 from django.utils.http import urlencode
 from django.utils.functional import cached_property
 from django.views.generic import View
 
+from wagtail.wagtailadmin import messages
+from wagtail.wagtailadmin.edit_handlers import (
+    ObjectList, extract_panel_definitions_from_model_class)
+
 from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
-from .utils import permission_denied
+from .utils import get_url_name, permission_denied
+from .forms import ParentChooserForm
 
 # IndexView settings
 ORDER_VAR = 'o'
@@ -59,18 +62,44 @@ class BaseView(View):
 
     @cached_property
     def app_label(self):
-        return force_text(self.opts.app_label)
+        return capfirst(force_text(self.opts.app_label))
 
     @cached_property
     def model_name(self):
-        return force_text(self.opts.verbose_name)
+        return capfirst(force_text(self.opts.verbose_name))
 
     @cached_property
     def model_name_plural(self):
-        return force_text(self.opts.verbose_name_plural)
+        return capfirst(force_text(self.opts.verbose_name_plural))
 
-    def get_menu_icon(self):
+    @cached_property
+    def get_create_url(self):
+        return self.model_admin.get_create_url()
+
+    @cached_property
+    def get_index_url(self):
+        return self.model_admin.get_index_url()
+
+    @cached_property
+    def menu_icon(self):
         return self.model_admin.get_menu_icon()
+
+    @cached_property
+    def header_icon(self):
+        return self.menu_icon
+
+    def get_edit_url(self, obj):
+        return reverse(get_url_name(self.opts, 'edit'), args=(obj.pk,))
+
+    def get_delete_url(self, obj):
+        return reverse(get_url_name(self.opts, 'delete'), args=(obj.pk,))
+
+    def prime_session_for_redirection(self, request):
+        index_url = self.model_admin.get_index_url()
+        request.session['return_to_index_url'] = index_url
+
+    def page_title(self):
+        return _('Managing %s') % self.model_name_plural
 
     def get_context_data(self, request, *args, **kwargs):
         if self.model_admin.parent:
@@ -81,12 +110,7 @@ class BaseView(View):
             'app_label': app_label,
             'module_name': self.model_name,
             'module_name_plural': self.model_name_plural,
-            'module_icon': self.get_menu_icon(),
-            'is_pagemodel': self.is_pagemodel,
-            'index_url': self.model_admin.get_index_url(),
-            'add_url': self.model_admin.get_add_url(),
         }
-        context.update(self.model_admin.get_extra_context_data(request))
         return context
 
     def get_base_queryset(self, request):
@@ -96,7 +120,8 @@ class BaseView(View):
 class ObjectSpecificMixin(object):
 
     def prime_session_for_redirection(self, request):
-        request.session['return_to_index_url'] = self.model_admin.get_index_url()
+        index_url = self.model_admin.get_index_url()
+        request.session['return_to_index_url'] = index_url
 
     def check_action_permitted(self, user, obj):
         return True
@@ -110,7 +135,23 @@ class ObjectSpecificMixin(object):
             return permission_denied(request)
         self.prime_session_for_redirection(request)
         setattr(self, 'pk', pk)
-        setattr(self, 'obj', obj)
+        setattr(self, 'instance', obj)
+
+    def get_edit_url(self):
+        return reverse(get_url_name(self.opts, 'edit'), args=(self.pk,))
+
+    def get_delete_url(self):
+        return reverse(get_url_name(self.opts, 'delete'), args=(self.pk,))
+
+
+class ModelFormMixin(object):
+
+    def get_edit_handler_class(self):
+        panels = extract_panel_definitions_from_model_class(self.model)
+        return ObjectList(panels).bind_to_model(self.model)
+
+    def get_form_class(self):
+        return self.get_edit_handler_class().get_form_class(self.model)
 
 
 class IndexView(BaseView):
@@ -148,7 +189,7 @@ class IndexView(BaseView):
 
     def edit_button(self, obj):
         pk = quote(getattr(obj, self.pk_attname))
-        url = reverse(self.model_admin.get_url_name('edit'), args=(pk,))
+        url = reverse(get_url_name(self.opts, 'edit'), args=(pk,))
         return {
             'title': _('Edit this %(mn)s') % {'mn': self.model_name},
             'label': _('Edit'),
@@ -157,7 +198,7 @@ class IndexView(BaseView):
 
     def delete_button(self, obj):
         pk = quote(getattr(obj, self.pk_attname))
-        url = reverse(self.model_admin.get_url_name('delete'), args=(pk,))
+        url = reverse(get_url_name(self.opts, 'delete'), args=(pk,))
         return {
             'title': _('Delete this %(mn)s') % {'mn': self.model_name},
             'label': _('Delete'),
@@ -166,7 +207,7 @@ class IndexView(BaseView):
 
     def unpublish_button(self, obj):
         pk = quote(getattr(obj, self.pk_attname))
-        url = reverse(self.model_admin.get_url_name('unpublish'), args=(pk,))
+        url = reverse(get_url_name(self.opts, 'unpublish'), args=(pk,))
         return {
             'title': _('Unpublish this %(mn)s') % {'mn': self.model_name},
             'label': _('Unpublish'),
@@ -564,7 +605,7 @@ class IndexView(BaseView):
 
         context = self.get_context_data(request, *args, **kwargs)
         context.update({
-            'indexview': self,
+            'view': self,
             'all_count': all_count,
             'result_count': result_count,
             'paginator': paginator,
@@ -572,127 +613,136 @@ class IndexView(BaseView):
             'object_list': page_obj.object_list,
             'title': _('Listing of %s') % self.model_name_plural,
             'has_add_permission': user_can_add,
-            'media': self.model_admin.get_extra_list_view_media(request),
         })
 
         if self.is_pagemodel:
             allowed_parent_types = self.model.allowed_parent_page_types()
-            if allowed_parent_types:
-                valid_parent_count = self.permission_helper.get_valid_parent_pages(request.user).count()
-            else:
-                valid_parent_count = 0
+            user = request.user
+            valid_parents = self.permission_helper.get_valid_parent_pages(user)
+            valid_parent_count = valid_parents.count()
             context.update({
                 'no_valid_parents': not valid_parent_count,
                 'required_parent_types': allowed_parent_types,
             })
 
-        context.update(self.model_admin.get_extra_list_view_context_data(request))
+        if request.session.get('return_to_index_url'):
+            del(request.session['return_to_index_url'])
 
-        return TemplateResponse(request, self.get_template(), context)
+        return render(request, self.get_template(), context)
 
     def get_template(self):
-        return self.model_admin.get_list_template()
+        return self.model_admin.get_index_template()
 
 
-class AddView(BaseView):
+class CreateView(ModelFormMixin, BaseView):
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.has_add_permission(request.user):
             return permission_denied(request)
-        return super(AddView, self).dispatch(request, *args, **kwargs)
 
-    def get(self, request, *args, **kwargs):
         if self.is_pagemodel:
-            valid_parents = self.permission_helper.get_valid_parent_pages(request.user)
-            valid_parent_count = valid_parents.count()
+            user = request.user
+            parents = self.permission_helper.get_valid_parent_pages(user)
+            parent_count = parents.count()
 
-            if valid_parent_count == 1:
-                parent = valid_parents.get()
-                url_args = [self.opts.app_label, self.opts.model_name, parent.pk]
-                return HttpResponseRedirect(
-                    reverse('wagtailadmin_pages_create', args=url_args))
-
-            return HttpResponseRedirect(self.model_admin.get_choose_parent_page_url())
-        if self.is_snippetmodel:
-            url_args = [self.opts.app_label, self.opts.model_name]
-            return HttpResponseRedirect(
-                reverse('wagtailsnippets_create', args=url_args))
-
-
-class ChooseParentPageView(BaseView):
-    def dispatch(self, request, *args, **kwargs):
-        if not self.permission_helper.has_add_permission(request.user):
-            return permission_denied(request)
-        return super(ChooseParentPageView, self).dispatch(request, *args, **kwargs)
-
-    def get_parent_chooser_form(self, request):
-        parents = self.permission_helper.get_valid_parent_pages(request.user)
-
-        class CustomModelChoiceField(ModelChoiceField):
-            def label_from_instance(self, obj):
-                bits = []
-                root_page = obj.get_ancestors().get(
-                    sites_rooted_here__isnull=False)
-                ancestors = obj.get_ancestors(inclusive=True)
-                for ancestor in ancestors.descendant_of(root_page, inclusive=True):
-                    bits.append(ancestor.title)
-                return ' > '.join(bits)
-
-        class ParentChooserForm(Form):
-            parent_page = CustomModelChoiceField(
-                label=_('Put it under'),
-                required=True,
-                empty_label=None,
-                queryset=parents,
-                widget=RadioSelect(),
-            )
-
-        return ParentChooserForm(request.POST or None)
-
-    def get(self, request, *args, **kwargs):
-        context_data = self.get_context_data(request)
-        form = self.get_parent_chooser_form(request)
-        context_data.update({
-            'form': form,
-            'media': form.media,
-        })
-        return TemplateResponse(request, self.get_template(), context_data)
-
-    def post(self, request, *args, **kwargs):
-        form = self.get_parent_chooser_form(request)
-        if form.is_valid():
-            parent = form.cleaned_data['parent_page']
-            url_args = [
-                self.opts.app_label,
-                self.opts.model_name,
-                quote(parent.pk)]
-            return HttpResponseRedirect(
-                reverse('wagtailadmin_pages_create', args=(
+            # There's only one available parent for this page type for this
+            # user, so we send them along with that as the chosen parent page
+            if parent_count == 1:
+                parent = parents.get()
+                return redirect(
+                    'wagtailadmin_pages_create',
                     self.opts.app_label,
                     self.opts.model_name,
-                    quote(parent.pk))
+                    parent.pk
                 )
-            )
+
+            # The page can be added in multiple places, so redirect to the
+            # choose_parent_page view so that the parent can be specified
+            return redirect(self.model_admin.get_choose_parent_page_url())
         return self.get(request, *args, **kwargs)
 
+    def page_title(self):
+        return _('New')
+
+    def page_subtitle(self):
+        return self.model_name
+
+    def get_instance(self):
+        return self.model()
+
+    def success_msg(self, instance):
+        return _("{model_name} '{instance}' created.").format(
+            model_name=self.model_name, instance=instance),
+
+    def success_btn_url(self, instance):
+        return self.get_edit_url(instance)
+
+    def error_msg(self, instance):
+        return _("The {model} could not be created due to errors.").format(
+            model=self.model_name),
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_instance()
+        edit_handler_class = self.get_edit_handler_class()
+        form_class = self.get_form_class()
+
+        form = form_class(request.POST or None, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request, self.success_msg(instance),
+                buttons=[
+                    messages.button(self.success_btn_url(instance), _('Edit'))
+                ]
+            )
+            return redirect(self.get_index_url)
+        else:
+            messages.error(request, self.error_msg(instance))
+
+        context = {
+            'view': self,
+            'edit_handler': edit_handler_class(instance=instance, form=form)
+        }
+        return render(request, self.get_template(), context)
 
     def get_template(self):
-        return self.model_admin.get_choose_parent_page_template()
+        return self.model_admin.get_create_template()
 
 
-class EditView(ObjectSpecificMixin, BaseView):
+class EditView(ObjectSpecificMixin, CreateView):
     def check_action_permitted(self, user, obj):
         return self.permission_helper.can_edit_object(user, obj)
 
     def dispatch(self, request, object_id, *args, **kwargs):
         self.pre_dispatch_checks(request, object_id)
         if self.is_pagemodel:
-            return HttpResponseRedirect(
-                reverse('wagtailadmin_pages_edit', args=(self.pk,)))
+            return redirect('wagtailadmin_pages_edit', self.pk)
         elif self.is_snippetmodel:
-            url_args = (self.app_label, self.model_name, self.pk)
-            return HttpResponseRedirect(
-                reverse('wagtailsnippets_edit', args=url_args))
-        return super(EditView, self).dispatch(request, *args, **kwargs)
+            return redirect('wagtailsnippets_edit', self.app_label,
+                            self.model_name, self.pk)
+        return self.get(request, *args, **kwargs)
+
+    def page_title(self):
+        return _('Editing')
+
+    def page_subtitle(self):
+        return self.instance
+
+    def get_instance(self):
+        return self.instance
+
+    def success_msg(self, instance):
+        return _("{model_name} '{instance}' updated.").format(
+            model_name=self.model_name, instance=instance),
+
+    def success_btn_url(self, instance):
+        return self.get_edit_url()
+
+    def error_msg(self, instance):
+        return _("The {model} could not be saved due to errors.").format(
+            model=self.model_name),
+
+    def get_template(self):
+        return self.model_admin.get_edit_template()
 
 
 class DeleteView(ObjectSpecificMixin, BaseView):
@@ -702,13 +752,36 @@ class DeleteView(ObjectSpecificMixin, BaseView):
     def dispatch(self, request, object_id, *args, **kwargs):
         self.pre_dispatch_checks(request, object_id)
         if self.is_pagemodel:
-            return HttpResponseRedirect(
-                reverse('wagtailadmin_pages_delete', args=(self.pk,)))
-        elif self.is_snippetmodel:
-            url_args = (self.app_label, self.model_name, self.pk)
-            return HttpResponseRedirect(
-                reverse('wagtailsnippets_delete', args=url_args))
-        return super(DeleteView, self).dispatch(request, *args, **kwargs)
+            return redirect('wagtailadmin_pages_delete', self.pk)
+        return self.get(request, *args, **kwargs)
+
+    def page_title(self):
+        return _('Delete')
+
+    def page_subtitle(self):
+        return self.instance
+
+    def confirmation_message(self):
+        return _(
+            "Are you sure you want to delete this %s? If other things in your "
+            "site are related to it, they may also be effected."
+        ) % self.model_name
+
+    def get(self, request, *args, **kwargs):
+        instance = self.instance
+        if request.POST:
+            instance.delete()
+            messages.success(
+                request,
+                _("{model_name} '{instance}' deleted.").format(
+                    model_name=self.model_name, instance=instance))
+            return redirect(self.get_index_url)
+
+        context = {'view': self, 'instance': self.instance}
+        return render(request, self.get_template(), context)
+
+    def get_template(self):
+        return self.model_admin.get_delete_template()
 
 
 class UnpublishView(ObjectSpecificMixin, BaseView):
@@ -717,5 +790,31 @@ class UnpublishView(ObjectSpecificMixin, BaseView):
 
     def dispatch(self, request, object_id, *args, **kwargs):
         self.pre_dispatch_checks(request, object_id)
-        return HttpResponseRedirect(
-            reverse('wagtailadmin_pages_unpublish', args=(self.pk,)))
+        return redirect('wagtailadmin_pages_unpublish', self.pk)
+
+
+class ChooseParentPageView(BaseView):
+    def dispatch(self, request, *args, **kwargs):
+        if not self.permission_helper.has_add_permission(request.user):
+            return permission_denied(request)
+        return self.get(request, *args, **kwargs)
+
+    def page_title(self):
+        return _('Add %s') % self.model_name
+
+    def get_form(self, request):
+        parents = self.permission_helper.get_valid_parent_pages(request.user)
+        return ParentChooserForm(parents, request.POST or None)
+
+    def get(self, request, *args, **kwargs):
+        form = self.get_form(request)
+        if form.is_valid():
+            parent = form.cleaned_data['parent_page']
+            return redirect('wagtailadmin_pages_create', args=(
+                self.opts.app_label, self.opts.model_name, quote(parent.pk)))
+
+        context = {'view': self, 'form': form}
+        return render(request, self.get_template(), context)
+
+    def get_template(self):
+        return self.model_admin.get_choose_parent_page_template()

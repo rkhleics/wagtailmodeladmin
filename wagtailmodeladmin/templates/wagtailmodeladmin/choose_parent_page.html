@@ -1,7 +1,7 @@
 {% extends "wagtailadmin/base.html" %}
 {% load i18n wagtailadmin_tags compress admin_urls admin_static wagtailmodeladmin_tags %}
 
-{% block titletag %}{{ title }}{% endblock %}
+{% block titletag %}{{ view.page_title }}{% endblock %}
 
 {% block css %}
     {{ block.super }}
@@ -22,35 +22,29 @@
 {% endblock %}
 
 {% block extra_js %}
-    {{ media.js }}
+    {{ form.media.js }}
 {% endblock %}
 
 {% block content %}
 <div id="content-main">
-    <header class="nice-padding" style="margin-bottom: 30px;">
-    <div class="row">
-        <div class="left">
-            <div class="col">
-                <h1 class="icon {{ module_icon }}">{% blocktrans with module_name|title as name %}Add {{ name }}{% endblocktrans %}</h1>
-            </div>
-        </div>
-    </div>
-    </header>
+
+    {% include "wagtailadmin/shared/header.html" with title=view.page_title subtitle=view.get_page_subtitle icon=view.header_icon %}
+    
     <div class="nice-padding">
-        <h2>{% trans 'Where should it live?' %}</h2>
-        <p>{% blocktrans with module_name_plural|title as plural and module_name|title as singular %}{{ plural }} can be added to more than one place within your site. Please tell us where you'd like this new {{ singular }} to live...{% endblocktrans %}</p>
+        <h2>{% blocktrans %}Where should it go?{% endblocktrans %}</h2>
+        <p>{% blocktrans with view.model_name_plural as plural %}{{ plural }} can be added to more than one place within your site. Where would you like this new one to go?{% endblocktrans %}</p>
+        
         <form action="" method="POST">
             {% csrf_token %}
+
             <ul class="fields">
-                {% for field in form %}
-                <li class="required{% if field.errors %} error{% endif %}">
-                    <label for="{{ field.id_for_label }}" style="width:auto;">{{ field.label }}:</label>
-                    {{ field }}
+                {% include "wagtailadmin/shared/field_as_li.html" with field=form.parent_page %}
+                <li>
+                    <input type="submit" class="button" value="{% trans 'Continue' %}">
                 </li>
-                {% endfor %}
-                <li><input type="submit" class="button" value="{% trans 'Continue' %}"></li>
             </ul>            
         </form>
+
     </div>
 </div>
 {% endblock %}

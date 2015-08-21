@@ -20,12 +20,12 @@ from ..views import PAGE_VAR, SEARCH_VAR
 register = Library()
 
 
-def items_for_result(indexview, result):
+def items_for_result(view, result):
     """
     Generates the actual list of data.
     """
-    model_admin = indexview.model_admin
-    for field_name in indexview.list_display:
+    model_admin = view.model_admin
+    for field_name in view.list_display:
         empty_value_display = ''
         row_classes = ['field-%s' % field_name]
         try:
@@ -63,18 +63,18 @@ def items_for_result(indexview, result):
         yield format_html('<td{}>{}</td>', row_class, result_repr)
 
 
-def results(indexview, object_list):
+def results(view, object_list):
     for item in object_list:
-        yield ResultList(None, items_for_result(indexview, item))
+        yield ResultList(None, items_for_result(view, item))
 
 
 @register.inclusion_tag("wagtailmodeladmin/includes/result_list.html",
                         takes_context=True)
-def result_list(context, indexview, object_list):
+def result_list(context, view, object_list):
     """
     Displays the headers and data list together
     """
-    headers = list(result_headers(indexview))
+    headers = list(result_headers(view))
     num_sorted_fields = 0
     for h in headers:
         if h['sortable'] and h['sorted']:
@@ -82,54 +82,51 @@ def result_list(context, indexview, object_list):
     context.update({
         'result_headers': headers,
         'num_sorted_fields': num_sorted_fields,
-        'results': list(results(indexview, object_list))})
+        'results': list(results(view, object_list))})
     return context
 
 
 @register.simple_tag
-def pagination_link_previous(current_page, indexview):
+def pagination_link_previous(current_page, view):
     if current_page.has_previous():
         previous_page_number0 = current_page.previous_page_number() - 1
         return format_html(
             '<li class="prev"><a href="%s" class="icon icon-arrow-left">%s</a></li>' %
-            (indexview.get_query_string({PAGE_VAR: previous_page_number0}), _('Previous'))
+            (view.get_query_string({PAGE_VAR: previous_page_number0}), _('Previous'))
         )
     return ''
 
 
 @register.simple_tag
-def pagination_link_next(current_page, indexview):
+def pagination_link_next(current_page, view):
     if current_page.has_next():
         next_page_number0 = current_page.next_page_number() - 1
         return format_html(
             '<li class="next"><a href="%s" class="icon icon-arrow-right-after">%s</a></li>' %
-            (indexview.get_query_string({PAGE_VAR: next_page_number0}), _('Next'))
+            (view.get_query_string({PAGE_VAR: next_page_number0}), _('Next'))
         )
     return ''
 
 
 @register.inclusion_tag("wagtailmodeladmin/includes/search_form.html")
-def search_form(indexview):
+def search_form(view):
     return {
-        'indexview': indexview,
+        'view': view,
         'search_var': SEARCH_VAR,
     }
 
 
 @register.simple_tag
-def admin_list_filter(indexview, spec):
-    return djangoadmin_list_filter(indexview, spec)
+def admin_list_filter(view, spec):
+    return djangoadmin_list_filter(view, spec)
 
 
 @register.inclusion_tag("wagtailmodeladmin/includes/result_row.html",
                         takes_context=True)
-def result_row_display(context, indexview, object_list, result, index):
+def result_row_display(context, view, object_list, result, index):
     obj = list(object_list)[index]
-    buttons = indexview.get_action_buttons_for_obj(context['request'].user, obj)
-    context.update({
-        'obj': obj,
-        'action_buttons': buttons,
-    })
+    buttons = view.get_action_buttons_for_obj(context['request'].user, obj)
+    context.update({'obj': obj, 'action_buttons': buttons})
     return context
 
 

@@ -1,13 +1,13 @@
 {% load i18n admin_static %}
-{% if cl.search_fields %}
-<form id="changelist-search" class="col search-form" action="" method="get">
+{% if view.search_fields %}
+<form id="changelist-search" class="col search-form" action="{{ view.get_index_url }}" method="get">
     <ul class="fields">
         <li class="required">
             <div class="field char_field text_input field-small iconfield">
                 <label for="id_q" class="visuallyhidden">{% trans 'Search for' %}</label>
                 <div class="field-content">
                     <div class="input icon-search ">
-                        <input id="id_q" name="{{ search_var }}" value="{{ cl.query }}" placeholder="{% blocktrans with cl.model_name_plural as name %}Search {{ name }}{% endblocktrans %}" type="text">
+                        <input id="id_q" name="{{ search_var }}" value="{{ view.query }}" placeholder="{% blocktrans with view.model_name_plural as name %}Search {{ name }}{% endblocktrans %}" type="text">
                         <span></span>
                     </div>
                 </div>

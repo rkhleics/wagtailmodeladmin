@@ -4,7 +4,6 @@ from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
 from django.core.exceptions import ImproperlyConfigured
 from django.views.decorators.csrf import csrf_protect
-from django.forms import Media
 from django.utils.decorators import method_decorator
 csrf_protect_m = method_decorator(csrf_protect)
 
@@ -13,8 +12,10 @@ from wagtail.wagtailcore.models import Page
 from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
 from .views import (
-    IndexView, AddView, ChooseParentPageView, EditView, DeleteView,
+    IndexView, CreateView, ChooseParentPageView, EditView, DeleteView,
     UnpublishView)
+from .utils import (
+    get_url_pattern, get_object_specific_url_pattern, get_url_name)
 
 
 class ModelAdmin(object):
@@ -59,8 +60,8 @@ class ModelAdmin(object):
         if self.menu_icon:
             return self.menu_icon
         if self.is_pagemodel:
-            return 'icon-doc-full-inverse'
-        return 'icon-snippet'
+            return 'doc-full-inverse'
+        return 'snippet'
 
     def get_menu_order(self):
         return self.menu_order or 999
@@ -107,26 +108,14 @@ class ModelAdmin(object):
         """
         return self.search_fields or ()
 
-    def get_url_pattern(self, function_name):
-        return r'^modeladmin/%s/%s/%s$' % (
-            self.opts.app_label, self.opts.model_name, function_name)
-
-    def get_url_pattern_with_object_id(self, function_name):
-        return r'^modeladmin/%s/%s/%s/(?P<object_id>[-\w]+)$' % (
-            self.opts.app_label, self.opts.model_name, function_name)
-
-    def get_url_name(self, function_name):
-        return '%s_%s_modeladmin_%s' % (
-            self.opts.app_label, self.opts.model_name, function_name)
-
     def get_index_url(self):
-        return reverse(self.get_url_name('index'))
+        return reverse(get_url_name(self.opts, 'index'))
 
     def get_choose_parent_page_url(self):
-        return reverse(self.get_url_name('choose_parent'))
+        return reverse(get_url_name(self.opts, 'choose_parent'))
 
-    def get_add_url(self):
-        return reverse(self.get_url_name('add'))
+    def get_create_url(self):
+        return reverse(get_url_name(self.opts, 'create'))
 
     def get_admin_urls_for_registration(self):
         """
@@ -134,41 +123,37 @@ class ModelAdmin(object):
         our the views that class offers.
         """
         return [
-            url(self.get_url_pattern('index'),
-                self.index_view, name=self.get_url_name('index')),
+            url(get_url_pattern(self.opts, 'index'),
+                self.index_view,
+                name=get_url_name(self.opts, 'index')),
 
-            url(self.get_url_pattern('add'),
-                self.add_view, name=self.get_url_name('add')),
+            url(get_url_pattern(self.opts, 'create'),
+                self.create_view,
+                name=get_url_name(self.opts, 'create')),
 
-            url(self.get_url_pattern('choose_parent'),
+            url(get_url_pattern(self.opts, 'choose_parent'),
                 self.choose_parent_page_view,
-                name=self.get_url_name('choose_parent')),
+                name=get_url_name(self.opts, 'choose_parent')),
 
-            url(self.get_url_pattern_with_object_id('edit'),
-                self.edit_view, name=self.get_url_name('edit')),
+            url(get_object_specific_url_pattern(self.opts, 'edit'),
+                self.edit_view,
+                name=get_url_name(self.opts, 'edit')),
 
-            url(self.get_url_pattern_with_object_id('delete'),
-                self.delete_view, name=self.get_url_name('delete')),
+            url(get_object_specific_url_pattern(self.opts, 'delete'),
+                self.delete_view,
+                name=get_url_name(self.opts, 'delete')),
 
-            url(self.get_url_pattern_with_object_id('unpublish'),
-                self.unpublish_view, name=self.get_url_name('unpublish')),
+            url(get_object_specific_url_pattern(self.opts, 'unpublish'),
+                self.unpublish_view,
+                name=get_url_name(self.opts, 'unpublish')),
         ]
-
-    def get_extra_context_data(self, request):
-        return {}
-
-    def get_extra_list_view_media(self, request):
-        return Media()
-
-    def get_extra_list_view_context_data(self, request):
-        return {}
 
     @csrf_protect_m
     def index_view(self, request):
         return IndexView(request, self).dispatch(request)
 
-    def add_view(self, request):
-        return AddView(request, self).dispatch(request)
+    def create_view(self, request):
+        return CreateView(request, self).dispatch(request)
 
     def edit_view(self, request, object_id):
         return EditView(request, self).dispatch(request, object_id)
@@ -191,21 +176,28 @@ class ModelAdmin(object):
         """
         return ModelAdminMenuItem(self, order or self.get_menu_order())
 
-    def get_list_template(self):
+    def get_standard_template_list_for_action(self, action='index'):
         opts = self.opts
         return [
-            'wagtailmodeladmin/%s/%s/index.html' % (opts.app_label, opts.model_name),
-            'wagtailmodeladmin/%s/index.html' % opts.app_label,
-            'wagtailmodeladmin/index.html',
+            'wagtailmodeladmin/%s/%s/%s.html' % (opts.app_label, opts.model_name, action),
+            'wagtailmodeladmin/%s/%s.html' % (opts.app_label, action),
+            'wagtailmodeladmin/%s.html' % (action,),
         ]
 
+    def get_index_template(self):
+        return self.get_standard_template_list_for_action('index')
+
     def get_choose_parent_page_template(self):
-        opts = self.opts
-        return [
-            'wagtailmodeladmin/%s/%s/choose_parent_page.html' % (opts.app_label, opts.model_name),
-            'wagtailmodeladmin/%s/choose_parent_page.html' % opts.app_label,
-            'wagtailmodeladmin/choose_parent_page.html',
-        ]
+        return self.get_standard_template_list_for_action('choose_parent_page')
+
+    def get_create_template(self):
+        return self.get_standard_template_list_for_action('create')
+
+    def get_edit_template(self):
+        return self.get_standard_template_list_for_action('edit')
+
+    def get_delete_template(self):
+        return self.get_standard_template_list_for_action('confirm_delete')
 
 
 class ModelAdminGroup(object):
