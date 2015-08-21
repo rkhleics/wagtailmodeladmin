@@ -1,24 +1,13 @@
 {% extends "wagtailadmin/base.html" %}
 {% load i18n wagtailadmin_tags compress admin_urls admin_static wagtailmodeladmin_tags %}
 
-{% block titletag %}{{ title }}{% endblock %}
+{% block titletag %}{{ view.page_title }}{% endblock %}
 
 {% block css %}
     {{ block.super }}
     {% compress css %}
         <link rel="stylesheet" href="{% static 'wagtailmodeladmin/css/index.css' %}" type="text/css"/>
     {% endcompress %}
-    {{ media.css }}
-    <style type="text/css">
-        .nav-main li.menu-{{ module_name_plural }} {
-            background: #1a1a1a;
-            text-shadow: -1px -1px 0px rgba(0, 0, 0, 0.3);
-        }
-        .nav-main li.menu-{{ module_name_plural }} > a {
-            border-left-color: #f37e77;
-            color: white;
-        }
-    </style>
 {% endblock %}
 
 {% block extra_js %}

@@ -8,8 +8,8 @@ from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.urlresolvers import reverse
 
-from django.core.urlresolvers import reverse, NoReverseMatch
 from django.core.exceptions import (
     FieldDoesNotExist, ImproperlyConfigured, SuspiciousOperation,
 )
@@ -34,7 +34,7 @@ from wagtail.wagtailadmin.edit_handlers import (
     ObjectList, extract_panel_definitions_from_model_class)
 
 from .permission_helpers import ModelPermissionHelper, PagePermissionHelper
-from .utils import get_url_name, permission_denied
+from .utils import get_url_name, ActionButtonHelper, permission_denied
 from .forms import ParentChooserForm
 
 # IndexView settings
@@ -52,13 +52,12 @@ class BaseView(View):
         self.model_admin = model_admin
         self.model = model_admin.model
         self.opts = model_admin.model._meta
+        self.pk_attname = self.opts.pk.attname
         self.is_pagemodel = model_admin.is_pagemodel
         if self.is_pagemodel:
             self.permission_helper = PagePermissionHelper(self.model)
         else:
             self.permission_helper = ModelPermissionHelper(self.model)
-        from wagtail.wagtailsnippets.models import SNIPPET_MODELS
-        self.is_snippetmodel = bool(model_admin.model in SNIPPET_MODELS)
 
     @cached_property
     def app_label(self):
@@ -73,12 +72,12 @@ class BaseView(View):
         return capfirst(force_text(self.opts.verbose_name_plural))
 
     @cached_property
-    def get_create_url(self):
-        return self.model_admin.get_create_url()
-
-    @cached_property
     def get_index_url(self):
         return self.model_admin.get_index_url()
+
+    @cached_property
+    def get_create_url(self):
+        return self.model_admin.get_create_url()
 
     @cached_property
     def menu_icon(self):
@@ -120,7 +119,17 @@ class BaseView(View):
         return self.get(request, *args, **kwargs)
 
 
-class ObjectSpecificMixin(object):
+class ModelFormMixin(object):
+
+    def get_edit_handler_class(self):
+        panels = extract_panel_definitions_from_model_class(self.model)
+        return ObjectList(panels).bind_to_model(self.model)
+
+    def get_form_class(self):
+        return self.get_edit_handler_class().get_form_class(self.model)
+
+
+class ObjectActionMixin(object):
 
     def prime_session_for_redirection(self, request):
         index_url = self.model_admin.get_index_url()
@@ -132,7 +141,7 @@ class ObjectSpecificMixin(object):
     def pre_dispatch_checks(self, request, object_id):
         pk = quote(object_id)
         filter_kwargs = {}
-        filter_kwargs[self.opts.pk.attname] = pk
+        filter_kwargs[self.pk_attname] = pk
         obj = get_object_or_404(self.model.objects.filter(**filter_kwargs))
         if not self.check_action_permitted(request.user, obj):
             return permission_denied(request)
@@ -145,16 +154,6 @@ class ObjectSpecificMixin(object):
 
     def get_delete_url(self):
         return reverse(get_url_name(self.opts, 'delete'), args=(self.pk,))
-
-
-class ModelFormMixin(object):
-
-    def get_edit_handler_class(self):
-        panels = extract_panel_definitions_from_model_class(self.model)
-        return ObjectList(panels).bind_to_model(self.model)
-
-    def get_form_class(self):
-        return self.get_edit_handler_class().get_form_class(self.model)
 
 
 class IndexView(BaseView):
@@ -179,7 +178,6 @@ class IndexView(BaseView):
             del self.params[ERROR_FLAG]
 
         self.query = request.GET.get(SEARCH_VAR, '')
-        self.pk_attname = self.opts.pk.attname
         self.queryset = self.get_queryset(request)
 
     def dispatch(self, request, *args, **kwargs):
@@ -187,45 +185,12 @@ class IndexView(BaseView):
             return permission_denied(request)
         return super(IndexView, self).dispatch(request, *args, **kwargs)
 
-    def url_for_result(self, result):
-        raise NoReverseMatch
-
-    def edit_button(self, obj):
-        pk = quote(getattr(obj, self.pk_attname))
-        url = reverse(get_url_name(self.opts, 'edit'), args=(pk,))
-        return {
-            'title': _('Edit this %(mn)s') % {'mn': self.model_name},
-            'label': _('Edit'),
-            'url': url,
-        }
-
-    def delete_button(self, obj):
-        pk = quote(getattr(obj, self.pk_attname))
-        url = reverse(get_url_name(self.opts, 'delete'), args=(pk,))
-        return {
-            'title': _('Delete this %(mn)s') % {'mn': self.model_name},
-            'label': _('Delete'),
-            'url': url,
-        }
-
-    def unpublish_button(self, obj):
-        pk = quote(getattr(obj, self.pk_attname))
-        url = reverse(get_url_name(self.opts, 'unpublish'), args=(pk,))
-        return {
-            'title': _('Unpublish this %(mn)s') % {'mn': self.model_name},
-            'label': _('Unpublish'),
-            'url': url,
-        }
+    def page_title(self):
+        return _('%s list') % self.model_name_plural
 
     def get_action_buttons_for_obj(self, user, obj):
-        buttons = []
-        if self.permission_helper.can_edit_object(user, obj):
-            buttons.append(self.edit_button(obj))
-        if self.permission_helper.can_unpublish_object(user, obj):
-            buttons.append(self.unpublish_button(obj))
-        if self.permission_helper.can_delete_object(user, obj):
-            buttons.append(self.delete_button(obj))
-        return buttons
+        bh = ActionButtonHelper(self.model, self.permission_helper, user, obj)
+        return bh.get_permitted_buttons()
 
     def get_search_results(self, request, queryset, search_term):
         """
@@ -614,7 +579,6 @@ class IndexView(BaseView):
             'paginator': paginator,
             'page_obj': page_obj,
             'object_list': page_obj.object_list,
-            'title': _('Listing of %s') % self.model_name_plural,
             'has_add_permission': user_can_add,
         })
 
@@ -708,7 +672,7 @@ class CreateView(ModelFormMixin, BaseView):
         return self.model_admin.get_create_template()
 
 
-class EditView(ObjectSpecificMixin, CreateView):
+class EditView(ObjectActionMixin, CreateView):
     def check_action_permitted(self, user, obj):
         return self.permission_helper.can_edit_object(user, obj)
 
@@ -716,9 +680,6 @@ class EditView(ObjectSpecificMixin, CreateView):
         self.pre_dispatch_checks(request, object_id)
         if self.is_pagemodel:
             return redirect('wagtailadmin_pages_edit', self.pk)
-        elif self.is_snippetmodel:
-            return redirect('wagtailsnippets_edit', self.app_label,
-                            self.model_name, self.pk)
         return super(CreateView, self).dispatch(request, *args, **kwargs)
 
     def page_title(self):
@@ -745,7 +706,7 @@ class EditView(ObjectSpecificMixin, CreateView):
         return self.model_admin.get_edit_template()
 
 
-class DeleteView(ObjectSpecificMixin, BaseView):
+class DeleteView(ObjectActionMixin, BaseView):
     def check_action_permitted(self, user, obj):
         return self.permission_helper.can_delete_object(user, obj)
 
@@ -784,7 +745,7 @@ class DeleteView(ObjectSpecificMixin, BaseView):
         return self.model_admin.get_delete_template()
 
 
-class UnpublishView(ObjectSpecificMixin, BaseView):
+class UnpublishView(ObjectActionMixin, BaseView):
     def check_action_permitted(self, user, obj):
         return self.permission_helper.can_unpublish_object(user, obj)
 

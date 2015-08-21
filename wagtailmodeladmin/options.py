@@ -109,7 +109,7 @@ class ModelAdmin(object):
         return self.search_fields or ()
 
     def get_index_url(self):
-        return reverse(get_url_name(self.opts, 'index'))
+        return reverse(get_url_name(self.opts))
 
     def get_choose_parent_page_url(self):
         return reverse(get_url_name(self.opts, 'choose_parent'))
@@ -123,9 +123,9 @@ class ModelAdmin(object):
         our the views that class offers.
         """
         return [
-            url(get_url_pattern(self.opts, 'index'),
+            url(get_url_pattern(self.opts),
                 self.index_view,
-                name=get_url_name(self.opts, 'index')),
+                name=get_url_name(self.opts)),
 
             url(get_url_pattern(self.opts, 'create'),
                 self.create_view,
