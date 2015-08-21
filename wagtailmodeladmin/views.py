@@ -116,6 +116,9 @@ class BaseView(View):
     def get_base_queryset(self, request):
         return self.model_admin.get_queryset(request)
 
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
 
 class ObjectSpecificMixin(object):
 
@@ -649,16 +652,13 @@ class CreateView(ModelFormMixin, BaseView):
             if parent_count == 1:
                 parent = parents.get()
                 return redirect(
-                    'wagtailadmin_pages_create',
-                    self.opts.app_label,
-                    self.opts.model_name,
-                    parent.pk
-                )
+                    'wagtailadmin_pages_create', self.opts.app_label,
+                    self.opts.model_name, parent.pk)
 
             # The page can be added in multiple places, so redirect to the
             # choose_parent_page view so that the parent can be specified
             return redirect(self.model_admin.get_choose_parent_page_url())
-        return self.get(request, *args, **kwargs)
+        return super(CreateView, self).dispatch(request, *args, **kwargs)
 
     def page_title(self):
         return _('New')
@@ -719,7 +719,7 @@ class EditView(ObjectSpecificMixin, CreateView):
         elif self.is_snippetmodel:
             return redirect('wagtailsnippets_edit', self.app_label,
                             self.model_name, self.pk)
-        return self.get(request, *args, **kwargs)
+        return super(CreateView, self).dispatch(request, *args, **kwargs)
 
     def page_title(self):
         return _('Editing')
@@ -753,7 +753,7 @@ class DeleteView(ObjectSpecificMixin, BaseView):
         self.pre_dispatch_checks(request, object_id)
         if self.is_pagemodel:
             return redirect('wagtailadmin_pages_delete', self.pk)
-        return self.get(request, *args, **kwargs)
+        return super(DeleteView, self).dispatch(request, *args, **kwargs)
 
     def page_title(self):
         return _('Delete')
