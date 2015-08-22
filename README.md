@@ -1,27 +1,26 @@
 # What is wagtailmodeladmin?
 
-It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail) that allows you create separate, highly-customisable listing pages for any model in your Wagtail project. Simply extend the included ModelAdmin class, customise a few fields, link it into Wagtail using a few hooks, and you're done.
+It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagtail) that allows you create separate, customisable listing pages for any model in your Wagtail project. Simply extend the `ModelAdmin` class, override a few attributes to suit your needs, link it into Wagtail using a few hooks (you can copy and paste from the examples below), and you're good to go.
 
-It'll take care of menu generation (with fully customisable menu items), register whatever urls it needs, and will even register your model's permissions with Wagtail (where required), allowing them to be applied to groups. It even provides everything you need to manage your items, providing add, edit and delete functionality for all your models.
-
-The ModelAdmin class offer similar functionality to that of Django's ModelAdmin class when it comes to listing your objects, allowing for:
+The `ModelAdmin` class offers similar list functionality to that of `django.contrib.admin.ModelAdmin`, poviding:
 
 - control over what values are displayed (via **list_display**)
 - control over default ordering (via **ordering**)
 - customisable model-specific text search (via **search_fields**)
 - customisable filters (via **list_filter**)
-- ability for user to reorder results from the listing page
+- sensible, automatic, access control on all functionality, respecting the permissions assigned to your users
+- a set of add, edit and delete views to add to and manage your content, without the need to register your model as a `Snippet`
 
 NOTE: **list_display** supports all the things that Django's ModelAdmin does 
 (including **short_description** and **admin_order_field** on custom methods
 and properties), giving you lots of flexibility when it comes to output.
-[Read more about list_display in the django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display). 
+[Read more about list_display in the Django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display). 
 It should be a similar story for the other attributes mentioned above, but
 we haven't tested things thoroughly enough to say for sure.
 
 ### Adding functionality, not taking it away
 
-wagtailmodeladmin doesn't interfere with what Wagtail does. The existing `Page` and `Snippet` functionality will still work in exactly the same way. It just adds a completely new set of views to let you manage things your own way.
+wagtailmodeladmin doesn't interfere with what Wagtail does. If your model extend Wagtail's `Page` model, or is registered as a `Snippet`, they'll still work in exactly the same way within Wagtail's existing management views. Wagtail simply adds an alternative set of views, which you have more 
 
 ## How to install
 
