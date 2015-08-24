@@ -231,6 +231,9 @@ class ModelAdmin(object):
                 name=get_url_name(self.opts, 'copy')),
         ]
 
+        def construct_main_menu(self, request, menu_items):
+            return menu_items
+
 
 class ModelAdminGroup(object):
     """
@@ -301,3 +304,18 @@ class ModelAdminGroup(object):
         for instance in self.modeladmin_instances:
             urls.extend(instance.get_admin_urls_for_registration())
         return urls
+
+    def construct_main_menu(self, request, menu_items):
+        return menu_items
+
+
+class PageModelAdmin(ModelAdmin):
+    pass
+
+
+class SnippetModelAdmin(ModelAdmin):
+    pass
+
+
+class AppModelAdmin(ModelAdminGroup):
+    pass
