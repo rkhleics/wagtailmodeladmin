@@ -39,7 +39,7 @@ class ActionButtonHelper(object):
         self.model = model
         self.opts = model._meta
         self.permission_helper = permission_helper
-        self.model_name = force_text(self.opts.model_name).lower()
+        self.model_name = force_text(self.opts.verbose_name).lower()
         self.obj = obj
         self.pk = quote(getattr(obj, self.opts.pk.attname))
 

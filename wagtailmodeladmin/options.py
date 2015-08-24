@@ -314,25 +314,29 @@ class ModelAdminGroup(object):
         return urls
 
     def construct_main_menu(self, request, menu_items):
+        warnings.warn((
+            "The 'construct_main_menu' method is now deprecated. You should "
+            "also remove the construct_main_menu hook from wagtail_hooks.py "
+            "in your app folder."), DeprecationWarning)
         return menu_items
 
 
 class PageModelAdmin(ModelAdmin):
     def __init__(self, parent=None):
-        warnings.warn(
+        warnings.warn((
             "The 'PageModelAdmin' class is now deprecated. You should extend "
-            "the 'ModelAdmin' class instead (which supports all model types).",
-            DeprecationWarning)
-        super(self, PageModelAdmin).__init__(parent)
+            "the 'ModelAdmin' class instead (which supports all model types)."
+        ), DeprecationWarning)
+        super(PageModelAdmin, self).__init__(parent)
 
 
 class SnippetModelAdmin(ModelAdmin):
     def __init__(self, parent=None):
-        warnings.warn(
+        warnings.warn((
             "The 'SnippetModelAdmin' class is now deprecated. You should "
             "extend the 'ModelAdmin' class instead (which supports all model "
-            "types).", DeprecationWarning)
-        super(self, SnippetModelAdmin).__init__(parent)
+            "types)."), DeprecationWarning)
+        super(SnippetModelAdmin, self).__init__(parent)
 
 
 class AppModelAdmin(ModelAdminGroup):
@@ -340,11 +344,11 @@ class AppModelAdmin(ModelAdminGroup):
     snippetmodeladmins = ()
 
     def __init__(self):
-        warnings.warn(
+        warnings.warn((
             "The 'AppModelAdmin' class is now deprecated, along with the "
             "pagemodeladmins and snippetmodeladmins attributes. You should "
             "use 'ModelAdminGroup' class instead, and combine the contents "
             "of pagemodeladmins and snippetmodeladmins into a single 'items' "
-            "attribute.", DeprecationWarning)
+            "attribute."), DeprecationWarning)
         self.items = self.pagemodeladmins + self.snippetmodeladmins
-        super(self, AppModelAdmin).__init__()
+        super(AppModelAdmin, self).__init__()
