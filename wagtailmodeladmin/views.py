@@ -55,6 +55,9 @@ class WMABaseView(TemplateView):
     Groups together common functionality for all app views.
     """
     model_admin = None
+    meta_title = ''
+    page_title = ''
+    page_subtitle = ''
 
     def __init__(self, model_admin):
         self.model_admin = model_admin
@@ -104,11 +107,11 @@ class WMABaseView(TemplateView):
     def prime_session_for_redirection(self):
         self.request.session['return_to_index_url'] = self.get_index_url
 
-    def page_title(self):
-        return self.model_name_plural
+    def get_page_title(self):
+        return self.page_title or self.model_name_plural
 
-    def meta_title(self):
-        return self.page_title
+    def get_meta_title(self):
+        return self.meta_title or self.get_page_title()
 
     def get_base_queryset(self, request):
         return self.model_admin.get_queryset(request)
@@ -223,9 +226,6 @@ class IndexView(WMABaseView):
         if not self.permission_helper.allow_list_view(request.user):
             return permission_denied(request)
         return super(IndexView, self).dispatch(request, *args, **kwargs)
-
-    def page_title(self):
-        return _('%s list') % self.model_name_plural
 
     def get_action_buttons_for_obj(self, user, obj):
         bh = ActionButtonHelper(self.model, self.permission_helper, user, obj)
@@ -641,6 +641,8 @@ class IndexView(WMABaseView):
 
 
 class CreateView(WMAFormView):
+    page_title = _('New')
+
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.has_add_permission(request.user):
             return permission_denied(request)
@@ -663,13 +665,10 @@ class CreateView(WMAFormView):
             return redirect(self.model_admin.get_choose_parent_page_url())
         return super(CreateView, self).dispatch(request, *args, **kwargs)
 
-    def meta_title(self):
+    def get_meta_title(self):
         return _('Create new %s') % self.model_name.lower()
 
-    def page_title(self):
-        return _('New')
-
-    def page_subtitle(self):
+    def get_page_subtitle(self):
         return self.model_name
 
     def get_template_names(self):
@@ -683,7 +682,7 @@ class ChooseParentPageView(WMABaseView):
         return super(ChooseParentPageView, self).dispatch(request, *args,
                                                           **kwargs)
 
-    def page_title(self):
+    def get_page_title(self):
         return _('Add %s') % self.model_name
 
     def get_form(self, request):
@@ -705,6 +704,8 @@ class ChooseParentPageView(WMABaseView):
 
 
 class EditView(ObjectSpecificView, CreateView):
+    page_title = _('Editing')
+
     def check_action_permitted(self):
         user = self.request.user
         return self.permission_helper.can_edit_object(user, self.instance)
@@ -718,11 +719,8 @@ class EditView(ObjectSpecificView, CreateView):
             return redirect('wagtailadmin_pages_edit', self.object_id)
         return super(CreateView, self).dispatch(request, *args, **kwargs)
 
-    def meta_title(self):
+    def get_meta_title(self):
         return _('Editing %s') % self.model_name.lower()
-
-    def page_title(self):
-        return _('Editing')
 
     def page_subtitle(self):
         return self.instance
@@ -740,6 +738,8 @@ class EditView(ObjectSpecificView, CreateView):
 
 
 class DeleteView(ObjectSpecificView):
+    page_title = _('Delete')
+
     def check_action_permitted(self):
         user = self.request.user
         return self.permission_helper.can_delete_object(user, self.instance)
@@ -753,13 +753,10 @@ class DeleteView(ObjectSpecificView):
             return redirect('wagtailadmin_pages_delete', self.object_id)
         return super(DeleteView, self).dispatch(request, *args, **kwargs)
 
-    def meta_title(self):
+    def get_meta_title(self):
         return _('Confirm deletion of %s') % self.model_name.lower()
 
-    def page_title(self):
-        return _('Delete')
-
-    def page_subtitle(self):
+    def get_page_subtitle(self):
         return self.instance
 
     def confirmation_message(self):
