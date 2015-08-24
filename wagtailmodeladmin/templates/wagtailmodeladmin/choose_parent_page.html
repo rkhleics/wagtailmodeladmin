@@ -1,12 +1,12 @@
 {% extends "wagtailadmin/base.html" %}
 {% load i18n wagtailadmin_tags compress admin_urls admin_static wagtailmodeladmin_tags %}
 
-{% block titletag %}{{ view.get_meta_title }}{% endblock %}
+{% block titletag %}{{ view.meta_title }}{% endblock %}
 
 {% block content %}
 <div id="content-main">
 
-    {% include "wagtailadmin/shared/header.html" with title=view.get_page_title subtitle=view.get_page_subtitle icon=view.header_icon %}
+    {% include "wagtailadmin/shared/header.html" with title=view.page_title subtitle=view.get_page_subtitle icon=view.header_icon %}
     
     <div class="nice-padding">
         <h2>{% blocktrans %}Where should it go?{% endblocktrans %}</h2>

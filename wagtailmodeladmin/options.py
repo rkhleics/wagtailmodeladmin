@@ -135,36 +135,20 @@ class ModelAdmin(object):
         return view_class.as_view(model_admin=self)(request)
 
     def edit_view(self, request, object_id):
-        kwargs = {
-            'model_admin': self,
-            'object_id': object_id
-        }
         view_class = self.edit_view_class
-        return view_class.as_view(**kwargs)(request)
+        return view_class.as_view(model_admin=self)(request, object_id)
 
     def delete_view(self, request, object_id):
-        kwargs = {
-            'model_admin': self,
-            'object_id': object_id
-        }
         view_class = self.delete_view_class
-        return view_class.as_view(**kwargs)(request)
+        return view_class.as_view(model_admin=self)(request, object_id)
 
     def unpublish_view(self, request, object_id):
-        kwargs = {
-            'model_admin': self,
-            'object_id': object_id
-        }
         view_class = self.unpublish_view_class
-        return view_class.as_view(**kwargs)(request)
+        return view_class.as_view(model_admin=self)(request, object_id)
 
     def copy_view(self, request, object_id):
         view_class = self.copy_view_class
-        kwargs = {
-            'model_admin': self,
-            'object_id': object_id
-        }
-        return view_class.as_view(**kwargs)(request)
+        return view_class.as_view(model_admin=self)(request, object_id)
 
     def get_template_list_for_action(self, action='index'):
         app = self.opts.app_label
