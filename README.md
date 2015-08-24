@@ -15,22 +15,22 @@ It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagta
 
 ## Supported list options:
 
-With the exception of bulk actions and date heirarchy, the `ModelAdmin` class offers similar list functionality to Django's `ModelAdmin` class, poviding:
+With the exception of bulk actions and date heirarchy, the `ModelAdmin` class offers similar list functionality to Django's ModelAdmin class, poviding:
 
 - control over what values are displayed (via the `list_display` attribute)
 - control over default ordering (via the `ordering` attribute)
 - customisable model-specific text search (via the `search_fields` attribute)
 - customisable filters (via the `list_filter` attribue)
 
-`list_display` supports the same fields and methods as Django's `ModelAdmin` class 
+`list_display` supports the same fields and methods as Django's ModelAdmin class 
 (including `short_description` and `admin_order_field` on custom methods), giving you lots of flexibility when it comes to output. [Read more about list_display in the Django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display). 
 
-`list_filter` supports the same field types as Django's `ModelAdmin` class, giving your users an easy way to find what they're looking for. [Read more about list_filter in the Django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_filter). 
+`list_filter` supports the same field types as Django's ModelAdmin class, giving your users an easy way to find what they're looking for. [Read more about list_filter in the Django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_filter). 
 
 
 ### Adding functionality, not taking it away
 
-wagtailmodeladmin doesn't interfere with what Wagtail does. If your model extend Wagtail's `Page` model, or is registered as a `Snippet`, they'll still work in exactly the same way within Wagtail's existing management views. Wagtail simply adds an alternative set of views, which you have more 
+wagtailmodeladmin doesn't interfere with what Wagtail does. If your model extends Wagtail's `Page` model, or is registered as a `Snippet`, they'll still be appear in Wagtail's Snippet and Page views within the admin centre. wagtailmodeladmin simply adds an additional, alternative set of views, which you're in control of.
 
 ## How to install
 
@@ -165,18 +165,6 @@ def register_admin_menu_item():
 The Wagtail CMS menu would look something like this:
 
 ![Complex example menu preview](http://i.imgur.com/skxP6ek.png)
-
-## Customising wagtailmodeladmin
-
-### Want to use your own templates?
-
-That's easy. `ModelAdmin` looks for custom list templates within your project's template directories before resorting to the included defaults. The order of preference when finding a template is:
-
-- wagtailmodeladmin/`{{ app_label }}`/`{{ model_name }}`/index.html
-- wagtailmodeladmin/`{{ model_name }}`/index.html
-- wagtailmodeladmin/index.html (default)
-
-Or if that doesn't fit your structure, you can override the `get_index_template` method on your class. Similar override functions can be found for all of the views provided by this app.
 
 ## Notes
 
