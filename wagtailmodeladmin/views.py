@@ -171,11 +171,6 @@ class WMAFormView(WMABaseView, FormView):
 
 class ObjectSpecificView(WMABaseView):
 
-    def dispatch(self, request, object_id, *args, **kwargs):
-        self.set_object_related_attributes(request, object_id)
-        if not self.check_action_permitted():
-            return permission_denied(self.request)
-
     def set_object_specific_attributes(self, request, object_id):
         self.object_id = object_id
         self.pk_safe = quote(object_id)
@@ -718,7 +713,8 @@ class EditView(ObjectSpecificView, CreateView):
         if self.is_pagemodel:
             self.prime_session_for_redirection()
             return redirect('wagtailadmin_pages_edit', self.object_id)
-        return super(CreateView, self).dispatch(request, *args, **kwargs)
+        return super(CreateView, self).dispatch(
+            request, object_id, *args, **kwargs)
 
     def meta_title(self):
         return _('Editing %s') % self.model_name.lower()
@@ -754,7 +750,8 @@ class DeleteView(ObjectSpecificView):
         if self.is_pagemodel:
             self.prime_session_for_redirection()
             return redirect('wagtailadmin_pages_delete', self.object_id)
-        return super(DeleteView, self).dispatch(request, *args, **kwargs)
+        return super(DeleteView, self).dispatch(
+            request, object_id, *args, **kwargs)
 
     def meta_title(self):
         return _('Confirm deletion of %s') % self.model_name.lower()
@@ -782,7 +779,10 @@ class DeleteView(ObjectSpecificView):
             return redirect(self.get_index_url)
 
         context = {'view': self, 'instance': self.instance}
-        return render(request, self.get_template(), context)
+        return self.render_to_response(context)
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
 
     def get_template_names(self):
         return self.model_admin.get_delete_template()

@@ -34,6 +34,13 @@ class ModelAdmin(object):
     parent = None
     paginator = Paginator
     show_full_result_count = True
+    index_view_class = IndexView
+    create_view_class = CreateView
+    edit_view_class = EditView
+    delete_view_class = DeleteView
+    choose_parent_view_class = ChooseParentPageView
+    copy_view_class = CopyRedirectView
+    unpublish_view_class = UnpublishRedirectView
 
     def __init__(self, parent=None):
         """
@@ -116,28 +123,32 @@ class ModelAdmin(object):
         return reverse(get_url_name(self.opts, 'create'))
 
     def index_view(self, request):
-        return IndexView.as_view(model_admin=self)(request)
+        view_class = self.index_view_class
+        return view_class.as_view(model_admin=self)(request)
 
     def create_view(self, request):
-        return CreateView.as_view(model_admin=self)(request)
+        view_class = self.create_view_class
+        return view_class.as_view(model_admin=self)(request)
 
     def choose_parent_page_view(self, request):
-        return ChooseParentPageView.as_view(model_admin=self)(request)
+        view_class = self.choose_parent_view_class
+        return view_class.as_view(model_admin=self)(request)
 
     def edit_view(self, request, object_id):
-        return EditView.as_view(model_admin=self)(request, object_id=object_id)
+        view_class = self.edit_view_class
+        return view_class.as_view(model_admin=self)(request, object_id)
 
     def delete_view(self, request, object_id):
-        return DeleteView.as_view(model_admin=self)(
-            request, object_id=object_id)
+        view_class = self.delete_view_class
+        return view_class.as_view(model_admin=self)(request, object_id)
 
     def unpublish_view(self, request, object_id):
-        return UnpublishRedirectView.as_view(model_admin=self)(
-            request, object_id=object_id)
+        view_class = self.unpublish_view_class
+        return view_class.as_view(model_admin=self)(request, object_id)
 
     def copy_view(self, request, object_id):
-        return CopyRedirectView.as_view(model_admin=self)(
-            request, object_id=object_id)
+        view_class = self.copy_view_class
+        return view_class.as_view(model_admin=self)(request, object_id)
 
     def get_template_list_for_action(self, action='index'):
         app = self.opts.app_label
