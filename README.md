@@ -5,7 +5,7 @@ It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagta
 ## A full list of features:
 
 - A customisable list view, allowing you to control what values are displayed for each item, available filter options, default ordering, and more.
-- Easily customisable menu items for the Wagtail CMS admin area, with control the label text and icons used and automatic 'active item' highlighting.
+- Easily customisable menu items for the Wagtail CMS admin area, with control over the label text and icons used, and automatic 'active item' highlighting.
 - An additional `ModelAdminGroup` class, that allows you to group together your related models, and list them together in their own submenu, for more logical user experience.
 - Simple, robust **add** and **edit** views for your non-Page models that use the panel configurations defined on your model using Wagtail's edit panels.
 - For Page models, the system cleverly directs to Wagtail's exisitng add and edit views, and returns you back to the correct list page, for a seemless experience.
