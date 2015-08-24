@@ -141,11 +141,11 @@ class MyModelAdminGroup(ModelAdminGroup):
     menu_label = 'My App'
     menu_icon = 'folder-open-inverse' # change as required
     menu_order = 200 # will put in 3rd place (000 being 1st, 100 2nd)
-    pagemodeladmins = (MyPageModelAdmin, MyOtherPageModelAdmin)
-    snippetmodeladmins = (MySnippetModelAdmin, MyOtherSnippetModelAdmin)
+    items = (MyPageModelAdmin, MyOtherPageModelAdmin, MySnippetModelAdmin, SomeOtherModelAdmin)
 
 # We instantiate the 'MyModelAdminGroup' class to use with the hooks below
 hook_instance = MyModelAdminGroup()
+
 
 @hooks.register('register_permissions')
 def register_permissions():
