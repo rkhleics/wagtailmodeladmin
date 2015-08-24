@@ -4,9 +4,6 @@ from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
 from django.core.exceptions import ImproperlyConfigured
-from django.views.decorators.csrf import csrf_protect
-from django.utils.decorators import method_decorator
-csrf_protect_m = method_decorator(csrf_protect)
 
 from wagtail.wagtailcore.models import Page
 
@@ -14,7 +11,7 @@ from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .permission_helpers import PermissionHelper, PagePermissionHelper
 from .views import (
     IndexView, CreateView, ChooseParentPageView, EditView, DeleteView,
-    CopyView, UnpublishView)
+    CopyRedirectView, UnpublishRedirectView)
 from .utils import (
     get_url_pattern, get_object_specific_url_pattern, get_url_name)
 
@@ -118,31 +115,29 @@ class ModelAdmin(object):
     def get_create_url(self):
         return reverse(get_url_name(self.opts, 'create'))
 
-    @csrf_protect_m
     def index_view(self, request):
-        return IndexView(request, self).dispatch(request)
+        return IndexView.as_view(model_admin=self)(request)
 
-    @csrf_protect_m
     def create_view(self, request):
-        return CreateView(request, self).dispatch(request)
+        return CreateView.as_view(model_admin=self)(request)
 
-    @csrf_protect_m
-    def edit_view(self, request, object_id):
-        return EditView(request, self).dispatch(request, object_id)
-
-    @csrf_protect_m
-    def delete_view(self, request, object_id):
-        return DeleteView(request, self).dispatch(request, object_id)
-
-    @csrf_protect_m
     def choose_parent_page_view(self, request):
-        return ChooseParentPageView(request, self).dispatch(request)
+        return ChooseParentPageView.as_view(model_admin=self)(request)
+
+    def edit_view(self, request, object_id):
+        return EditView.as_view(model_admin=self)(request, object_id=object_id)
+
+    def delete_view(self, request, object_id):
+        return DeleteView.as_view(model_admin=self)(
+            request, object_id=object_id)
 
     def unpublish_view(self, request, object_id):
-        return UnpublishView(request, self).dispatch(request, object_id)
+        return UnpublishRedirectView.as_view(model_admin=self)(
+            request, object_id=object_id)
 
     def copy_view(self, request, object_id):
-        return CopyView(request, self).dispatch(request, object_id)
+        return CopyRedirectView.as_view(model_admin=self)(
+            request, object_id=object_id)
 
     def get_template_list_for_action(self, action='index'):
         app = self.opts.app_label
