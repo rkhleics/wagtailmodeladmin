@@ -1,3 +1,4 @@
+import warnings
 from django.db.models import Model
 from django.contrib.auth.models import Permission
 from django.conf.urls import url
@@ -123,32 +124,39 @@ class ModelAdmin(object):
         return reverse(get_url_name(self.opts, 'create'))
 
     def index_view(self, request):
+        kwargs = {'model_admin': self}
         view_class = self.index_view_class
-        return view_class.as_view(model_admin=self)(request)
+        return view_class.as_view(**kwargs)(request)
 
     def create_view(self, request):
+        kwargs = {'model_admin': self}
         view_class = self.create_view_class
-        return view_class.as_view(model_admin=self)(request)
+        return view_class.as_view(**kwargs)(request)
 
     def choose_parent_page_view(self, request):
+        kwargs = {'model_admin': self}
         view_class = self.choose_parent_view_class
-        return view_class.as_view(model_admin=self)(request)
+        return view_class.as_view(**kwargs)(request)
 
     def edit_view(self, request, object_id):
+        kwargs = {'model_admin': self, 'object_id': object_id}
         view_class = self.edit_view_class
-        return view_class.as_view(model_admin=self)(request, object_id)
+        return view_class.as_view(**kwargs)(request)
 
     def delete_view(self, request, object_id):
+        kwargs = {'model_admin': self, 'object_id': object_id}
         view_class = self.delete_view_class
-        return view_class.as_view(model_admin=self)(request, object_id)
+        return view_class.as_view(**kwargs)(request)
 
     def unpublish_view(self, request, object_id):
+        kwargs = {'model_admin': self, 'object_id': object_id}
         view_class = self.unpublish_view_class
-        return view_class.as_view(model_admin=self)(request, object_id)
+        return view_class.as_view(**kwargs)(request)
 
     def copy_view(self, request, object_id):
+        kwargs = {'model_admin': self, 'object_id': object_id}
         view_class = self.copy_view_class
-        return view_class.as_view(model_admin=self)(request, object_id)
+        return view_class.as_view(**kwargs)(request)
 
     def get_template_list_for_action(self, action='index'):
         app = self.opts.app_label
@@ -310,12 +318,33 @@ class ModelAdminGroup(object):
 
 
 class PageModelAdmin(ModelAdmin):
-    pass
+    def __init__(self, parent=None):
+        warnings.warn(
+            "The 'PageModelAdmin' class is now deprecated. You should extend "
+            "the 'ModelAdmin' class instead (which supports all model types).",
+            DeprecationWarning)
+        super(self, PageModelAdmin).__init__(parent)
 
 
 class SnippetModelAdmin(ModelAdmin):
-    pass
+    def __init__(self, parent=None):
+        warnings.warn(
+            "The 'SnippetModelAdmin' class is now deprecated. You should "
+            "extend the 'ModelAdmin' class instead (which supports all model "
+            "types).", DeprecationWarning)
+        super(self, SnippetModelAdmin).__init__(parent)
 
 
 class AppModelAdmin(ModelAdminGroup):
-    pass
+    pagemodeladmins = ()
+    snippetmodeladmins = ()
+
+    def __init__(self):
+        warnings.warn(
+            "The 'AppModelAdmin' class is now deprecated, along with the "
+            "pagemodeladmins and snippetmodeladmins attributes. You should "
+            "use 'ModelAdminGroup' class instead, and combine the contents "
+            "of pagemodeladmins and snippetmodeladmins into a single 'items' "
+            "attribute.", DeprecationWarning)
+        self.items = self.pagemodeladmins + self.snippetmodeladmins
+        super(self, AppModelAdmin).__init__()

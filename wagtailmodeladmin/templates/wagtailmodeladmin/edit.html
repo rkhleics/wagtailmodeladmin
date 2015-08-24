@@ -1,6 +1,8 @@
 {% extends "wagtailmodeladmin/create.html" %}
 {% load i18n %}
 
+{% block form_action %}{{ view.get_edit_url }}{% endblock %}
+
 {% block form_actions %}
     <div class="dropdown dropup match-width">
         <div><input type="submit" value="{% trans 'Save' %}" /></div>

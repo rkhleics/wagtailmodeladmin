@@ -127,7 +127,7 @@ class WMAFormView(WMABaseView, FormView):
         return self.get_index_url
 
     def get_instance(self):
-        return getattr(self, 'instance', self.model())
+        return getattr(self, 'instance', None) or self.model()
 
     def get_form_kwargs(self):
         kwargs = FormView.get_form_kwargs(self)
@@ -171,22 +171,26 @@ class WMAFormView(WMABaseView, FormView):
 
 class ObjectSpecificView(WMABaseView):
 
-    def set_object_specific_attributes(self, request, object_id):
+    object_id = None
+    instance = None
+
+    def __init__(self, model_admin, object_id):
+        super(ObjectSpecificView, self).__init__(model_admin)
         self.object_id = object_id
         self.pk_safe = quote(object_id)
         filter_kwargs = {}
         filter_kwargs[self.pk_attname] = self.pk_safe
-        object_qs = self.model_admin.get_queryset(self.request).filter(
+        object_qs = model_admin.model._default_manager.get_queryset().filter(
             **filter_kwargs)
         self.instance = get_object_or_404(object_qs)
 
     def check_action_permitted(self):
         return True
 
-    def get_edit_url(self):
+    def get_edit_url(self, obj=None):
         return reverse(get_url_name(self.opts, 'edit'), args=(self.pk_safe,))
 
-    def get_delete_url(self):
+    def get_delete_url(self, obj=None):
         return reverse(get_url_name(self.opts, 'delete'), args=(self.pk_safe,))
 
 
@@ -706,15 +710,13 @@ class EditView(ObjectSpecificView, CreateView):
         return self.permission_helper.can_edit_object(user, self.instance)
 
     @method_decorator(login_required)
-    def dispatch(self, request, object_id, *args, **kwargs):
-        self.set_object_specific_attributes(request, object_id)
+    def dispatch(self, request, *args, **kwargs):
         if not self.check_action_permitted():
             return permission_denied(request)
         if self.is_pagemodel:
             self.prime_session_for_redirection()
             return redirect('wagtailadmin_pages_edit', self.object_id)
-        return super(CreateView, self).dispatch(
-            request, object_id, *args, **kwargs)
+        return super(CreateView, self).dispatch(request, *args, **kwargs)
 
     def meta_title(self):
         return _('Editing %s') % self.model_name.lower()
@@ -727,7 +729,7 @@ class EditView(ObjectSpecificView, CreateView):
 
     def get_success_message(self, instance):
         return _("{model_name} '{instance}' updated.").format(
-            model_name=self.model_name, instance=instance),
+            model_name=self.model_name, instance=instance)
 
     def get_error_message(self):
         model_name = self.model_name.lower()
@@ -743,15 +745,13 @@ class DeleteView(ObjectSpecificView):
         return self.permission_helper.can_delete_object(user, self.instance)
 
     @method_decorator(login_required)
-    def dispatch(self, request, object_id, *args, **kwargs):
-        self.set_object_specific_attributes(request, object_id)
+    def dispatch(self, request, *args, **kwargs):
         if not self.check_action_permitted():
             return permission_denied(request)
         if self.is_pagemodel:
             self.prime_session_for_redirection()
             return redirect('wagtailadmin_pages_delete', self.object_id)
-        return super(DeleteView, self).dispatch(
-            request, object_id, *args, **kwargs)
+        return super(DeleteView, self).dispatch(request, *args, **kwargs)
 
     def meta_title(self):
         return _('Confirm deletion of %s') % self.model_name.lower()
@@ -794,8 +794,7 @@ class UnpublishRedirectView(ObjectSpecificView):
         return self.permission_helper.can_unpublish_object(user, self.instance)
 
     @method_decorator(login_required)
-    def dispatch(self, request, object_id, *args, **kwargs):
-        self.set_object_specific_attributes(request, object_id)
+    def dispatch(self, request, *args, **kwargs):
         if not self.check_action_permitted():
             return permission_denied(request)
         self.prime_session_for_redirection()
@@ -808,8 +807,7 @@ class CopyRedirectView(ObjectSpecificView):
         return self.permission_helper.can_copy_object(user, self.instance)
 
     @method_decorator(login_required)
-    def dispatch(self, request, object_id, *args, **kwargs):
-        self.set_object_specific_attributes(request, object_id)
+    def dispatch(self, request, *args, **kwargs):
         if not self.check_action_permitted():
             return permission_denied(request)
         self.prime_session_for_redirection()

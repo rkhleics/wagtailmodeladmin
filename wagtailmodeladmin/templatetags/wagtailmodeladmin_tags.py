@@ -39,7 +39,7 @@ def items_for_result(view, result):
                 boolean = getattr(attr, 'boolean', False)
                 if boolean or not value:
                     allow_tags = True
-                result_repr = display_for_value(value, empty_value_display, boolean)
+                result_repr = display_for_value(value, boolean)
                 # Strip HTML tags in the resulting text, except if the
                 # function has an "allow_tags" attribute set to True.
                 if allow_tags:
