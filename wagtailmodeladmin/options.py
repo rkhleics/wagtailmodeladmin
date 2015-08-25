@@ -5,11 +5,14 @@ from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.encoding import force_text
+from django.utils.safestring import mark_safe
 
 from wagtail.wagtailcore.models import Page
 
 from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .permission_helpers import PermissionHelper, PagePermissionHelper
+from .forms import checkbox, ACTION_CHECKBOX_NAME
 from .views import (
     IndexView, CreateView, ChooseParentView, EditView, ConfirmDeleteView,
     CopyRedirectView, UnpublishRedirectView)
@@ -47,6 +50,7 @@ class ModelAdmin(object):
     edit_template_name = ''
     confirm_delete_template_name = ''
     choose_parent_template_name = ''
+    actions = []
 
     def __init__(self, parent=None):
         """
@@ -131,6 +135,15 @@ class ModelAdmin(object):
         if ordering:
             qs = qs.order_by(*ordering)
         return qs
+
+    def action_checkbox(self, obj):
+        """
+        A list_display column containing a checkbox widget.
+        """
+        return checkbox.render(ACTION_CHECKBOX_NAME, force_text(obj.pk))
+    action_checkbox.allow_tags = True
+    action_checkbox.short_description = mark_safe(
+        '<input type="checkbox" id="action-toggle" />')
 
     def get_search_fields(self, request):
         """

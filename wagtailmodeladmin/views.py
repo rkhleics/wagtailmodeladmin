@@ -8,6 +8,7 @@ from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
 from django.shortcuts import get_object_or_404, redirect, render
+from django.http.response import HttpResponseBase
 from django.core.urlresolvers import reverse
 
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
@@ -39,7 +40,7 @@ from wagtail.wagtailadmin.edit_handlers import (
 
 from .permission_helpers import PermissionHelper, PagePermissionHelper
 from .utils import get_url_name, ActionButtonHelper, permission_denied
-from .forms import ParentChooserForm
+from .forms import ACTION_CHECKBOX_NAME, ActionForm, ParentChooserForm
 
 # IndexView settings
 ORDER_VAR = 'o'
@@ -428,6 +429,134 @@ class IndexView(WMABaseView):
         if self.opts.ordering:
             return self.opts.ordering
         return ()
+
+    def get_actions(self, request):
+        """
+        Return a dictionary mapping the names of all actions for this
+        ModelAdmin to a tuple of (callable, name, description) for each action.
+        """
+        # If model_admin.actions is explicitly set to None that means that we
+        # don't want *any* actions enabled on this page.
+        if self.model_admin.actions is None:
+            return OrderedDict()
+
+        actions = []
+        for action in self.model_admin.actions:
+            actions.extend(self.get_action(action))
+        # get_action might have returned None, so filter any of those out.
+        actions = filter(None, actions)
+
+        # Convert the actions into an OrderedDict keyed by name.
+        actions = OrderedDict(
+            (name, (func, name, desc))
+            for func, name, desc in actions
+        )
+
+        return actions
+
+    def get_action_choices(self, request):
+        """
+        Return a list of choices for use in a form object.  Each choice is a
+        tuple (name, description).
+        """
+        choices = []
+        for func, name, description in six.itervalues(self.get_actions(request)):
+            choice = (name, description % {
+                'verbose_name': self.verbose_name,
+                'verbose_name_plural': self.verbose_name_plural,
+            })
+            choices.append(choice)
+        return choices
+
+    def get_action(self, action):
+        """
+        Return a given action from a parameter, which can either be a callable,
+        or the name of a method on the ModelAdmin.  Return is a tuple of
+        (callable, name, description).
+        """
+        # If the action is a callable, just use it.
+        if callable(action):
+            func = action
+            action = action.__name__
+
+        # Next, look for a method. Grab it off self.model_admin.__class__ to
+        # get an unbound method instead of a bound one; this ensures that the
+        # calling conventions are the same for functions and methods.
+        elif hasattr(self.model_admin.__class__, action):
+            func = getattr(self.model_admin.__class__, action)
+
+        if hasattr(func, 'short_description'):
+            description = func.short_description
+        else:
+            description = capfirst(action.replace('_', ' '))
+        return func, action, description
+
+    def response_action(self, request, queryset):
+        """
+        Handle an admin action. This is called if a request is POSTed to the
+        changelist; it returns an HttpResponse if the action was handled, and
+        None otherwise.
+        """
+
+        # There can be multiple action forms on the page (at the top
+        # and bottom of the change list, for example). Get the action
+        # whose button was pushed.
+        try:
+            action_index = int(request.POST.get('index', 0))
+        except ValueError:
+            action_index = 0
+
+        # Construct the action form.
+        data = request.POST.copy()
+        data.pop(ACTION_CHECKBOX_NAME, None)
+        data.pop("index", None)
+
+        # Use the action whose button was pushed
+        try:
+            data.update({'action': data.getlist('action')[action_index]})
+        except IndexError:
+            # If we didn't get an action from the chosen form that's invalid
+            # POST data, so by deleting action it'll fail the validation check
+            # below. So no need to do anything here
+            pass
+
+        action_form = ActionForm(data, auto_id=None)
+        action_form.fields['action'].choices = self.get_action_choices(request)
+
+        # If the form's valid we can handle the action.
+        if action_form.is_valid():
+            action = action_form.cleaned_data['action']
+            select_across = action_form.cleaned_data['select_across']
+            func = self.get_actions(request)[action][0]
+
+            # Get the list of selected PKs. If nothing's selected, we can't
+            # perform an action on it, so bail. Except we want to perform
+            # the action explicitly on all objects.
+            selected = request.POST.getlist(ACTION_CHECKBOX_NAME)
+            if not selected and not select_across:
+                # Reminder that something needs to be selected or nothing will
+                # happen
+                messages.warning(request, _(
+                    "Items must be selected in order to perform actions on "
+                    "them. No items have been changed."))
+                return None
+
+            if not select_across:
+                # Perform the action only on the selected objects
+                queryset = queryset.filter(pk__in=selected)
+
+            response = func(self, request, queryset)
+
+            # Actions may return an HttpResponse-like object, which will be
+            # used as the response from the POST. If not, we'll be a good
+            # little HTTP citizen and redirect back to the changelist page.
+            if isinstance(response, HttpResponseBase):
+                return response
+            else:
+                return redirect(self.get_list_url)
+        else:
+            messages.warning(request, _("No action selected."))
+            return None
 
     def get_ordering_field(self, field_name):
         """

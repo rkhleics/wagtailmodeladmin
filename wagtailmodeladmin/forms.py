@@ -2,6 +2,17 @@ from django import forms
 from django.utils.translation import ugettext as _
 from wagtail.wagtailcore.models import Page
 
+ACTION_CHECKBOX_NAME = '_selected_action'
+
+
+class ActionForm(forms.Form):
+    action = forms.ChoiceField(label=_('Action:'))
+    select_across = forms.BooleanField(
+        label='', required=False, initial=0,
+        widget=forms.HiddenInput({'class': 'select-across'}))
+
+checkbox = forms.CheckboxInput({'class': 'action-select'}, lambda value: False)
+
 
 class CustomModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
