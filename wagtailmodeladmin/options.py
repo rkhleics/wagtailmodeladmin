@@ -11,7 +11,7 @@ from wagtail.wagtailcore.models import Page
 from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .permission_helpers import PermissionHelper, PagePermissionHelper
 from .views import (
-    IndexView, CreateView, ChooseParentPageView, EditView, DeleteView,
+    IndexView, CreateView, ChooseParentView, EditView, ConfirmDeleteView,
     CopyRedirectView, UnpublishRedirectView)
 from .utils import (
     get_url_pattern, get_object_specific_url_pattern, get_url_name)
@@ -38,10 +38,15 @@ class ModelAdmin(object):
     index_view_class = IndexView
     create_view_class = CreateView
     edit_view_class = EditView
-    delete_view_class = DeleteView
-    choose_parent_view_class = ChooseParentPageView
+    confirm_delete_view_class = ConfirmDeleteView
+    choose_parent_view_class = ChooseParentView
     copy_view_class = CopyRedirectView
     unpublish_view_class = UnpublishRedirectView
+    index_template_name = ''
+    create_template_name = ''
+    edit_template_name = ''
+    confirm_delete_template_name = ''
+    choose_parent_template_name = ''
 
     def __init__(self, parent=None):
         """
@@ -60,9 +65,18 @@ class ModelAdmin(object):
             self.permission_helper = PermissionHelper(self.model)
 
     def get_menu_label(self):
+        """
+        Returns the label text to be used for the menu item
+        """
         return self.menu_label or self.opts.verbose_name_plural.title()
 
     def get_menu_icon(self):
+        """
+        Returns the icon to be used for the menu item. The value is prepended
+        with 'icon-' to create the full icon class name. For design
+        consistency, the same icon is also applied to the main heading for
+        views called by this class
+        """
         if self.menu_icon:
             return self.menu_icon
         if self.is_pagemodel:
@@ -70,9 +84,20 @@ class ModelAdmin(object):
         return 'snippet'
 
     def get_menu_order(self):
+        """
+        Returns the 'order' to be applied to the menu item. 000 being first
+        place. Where ModelAdminGroup is used, the menu_order value should be
+        applied to that, and any ModelAdmin classes added to 'items'
+        attribute will be ordered automatically, based on their order in that
+        sequence.
+        """
         return self.menu_order or 999
 
     def show_menu_item(self, request):
+        """
+        Returns a boolean indicating whether the menu item should be visible
+        for the user in the supplied request, based on their permissions.
+        """
         return self.permission_helper.allow_list_view(request.user)
 
     def get_list_display(self, request):
@@ -109,56 +134,108 @@ class ModelAdmin(object):
 
     def get_search_fields(self, request):
         """
-        Returns a sequence defining which fields on a model search when a
-        search is initiated from the list view.
+        Returns a sequence defining which fields on a model should be searched
+        when a search is initiated from the list view.
         """
         return self.search_fields or ()
 
     def get_index_url(self):
         return reverse(get_url_name(self.opts))
 
-    def get_choose_parent_page_url(self):
+    def get_choose_parent_url(self):
         return reverse(get_url_name(self.opts, 'choose_parent'))
 
     def get_create_url(self):
         return reverse(get_url_name(self.opts, 'create'))
 
     def index_view(self, request):
+        """
+        Instantiates a class-based view to provide listing functionality for
+        the assigned model. The view class used can be overridden by changing
+        the 'index_view_class' attribute.
+        """
         kwargs = {'model_admin': self}
         view_class = self.index_view_class
         return view_class.as_view(**kwargs)(request)
 
     def create_view(self, request):
+        """
+        Instantiates a class-based view to provide 'creation' functionality for
+        the assigned model, or redirect to Wagtail's create view if the
+        assigned model extends 'Page'. The view class used can be overridden by
+        changing the 'create_view_class' attribute.
+        """
         kwargs = {'model_admin': self}
         view_class = self.create_view_class
         return view_class.as_view(**kwargs)(request)
 
-    def choose_parent_page_view(self, request):
+    def choose_parent_view(self, request):
+        """
+        Instantiates a class-based view to provide a view that allows a parent
+        page to be chosen for a new object, where the assigned model extends
+        Wagtail's Page model, and there is more than one potential parent for
+        new instances. The view class used can be overridden by changing the
+        'choose_parent_view_class' attribute.
+        """
         kwargs = {'model_admin': self}
         view_class = self.choose_parent_view_class
         return view_class.as_view(**kwargs)(request)
 
     def edit_view(self, request, object_id):
+        """
+        Instantiates a class-based view to provide 'edit' functionality for the
+        assigned model, or redirect to Wagtail's edit view if the assinged
+        model extends 'Page'. The view class used can be overridden by changing
+        the  'edit_view_class' attribute.
+        """
         kwargs = {'model_admin': self, 'object_id': object_id}
         view_class = self.edit_view_class
         return view_class.as_view(**kwargs)(request)
 
-    def delete_view(self, request, object_id):
+    def confirm_delete_view(self, request, object_id):
+        """
+        Instantiates a class-based view to provide 'delete confirmation'
+        functionality for the assigned model, or redirect to Wagtail's delete
+        confirmation view if the assinged model extends 'Page'. The view class
+        used can be overridden by changing the 'confirm_delete_view_class'
+        attribute.
+        """
         kwargs = {'model_admin': self, 'object_id': object_id}
-        view_class = self.delete_view_class
+        view_class = self.confirm_delete_view_class
         return view_class.as_view(**kwargs)(request)
 
     def unpublish_view(self, request, object_id):
+        """
+        Instantiates a class-based view that redirects to Wagtail's 'unpublish'
+        view for models that extend 'Page' (if the user has sufficient
+        permissions). We do this via our own view so that we can reliably
+        control redirection of the user back to the index_view once the action
+        is completed. The view class used can be overridden by changing the
+        'unpublish_view_class' attribute.
+        """
         kwargs = {'model_admin': self, 'object_id': object_id}
         view_class = self.unpublish_view_class
         return view_class.as_view(**kwargs)(request)
 
     def copy_view(self, request, object_id):
+        """
+        Instantiates a class-based view that redirects to Wagtail's 'copy'
+        view for models that extend 'Page' (if the user has sufficient
+        permissions). We do this via our own view so that we can reliably
+        control redirection of the user back to the index_view once the action
+        is completed. The view class used can be overridden by changing the
+        'copy_view_class' attribute.
+        """
         kwargs = {'model_admin': self, 'object_id': object_id}
         view_class = self.copy_view_class
         return view_class.as_view(**kwargs)(request)
 
-    def get_template_list_for_action(self, action='index'):
+    def get_templates(self, action='index'):
+        """
+        Utility funtion that provides a list of templates to try for a given
+        view, when the template isn't overridden by one of the template
+        attributes on the class.
+        """
         app = self.opts.app_label
         model_name = self.opts.model_name
         return [
@@ -168,19 +245,56 @@ class ModelAdmin(object):
         ]
 
     def get_index_template(self):
-        return self.get_template_list_for_action('index')
+        """
+        Returns a template to be used when rendering 'index_view'. If a
+        template is specified by the 'index_template_name' attribute, that will
+        be used. Otherwise, a list of preferred template names are returned,
+        allowing custom templates to be used by simply putting them in a
+        sensible location in an app's template directory.
+        """
+        return self.index_template_name or self.get_templates('index')
 
-    def get_choose_parent_page_template(self):
-        return self.get_template_list_for_action('choose_parent_page')
+    def get_choose_parent_template(self):
+        """
+        Returns a template to be used when rendering 'choose_parent_view'. If a
+        template is specified by the 'choose_parent_template_name' attribute,
+        that will be used. Otherwise, a list of preferred template names are
+        returned, allowing custom templates to be used by simply putting them
+        in a sensible location in an app's template directory.
+        """
+        return self.choose_parent_template_name or self.get_templates(
+            'choose_parent')
 
     def get_create_template(self):
-        return self.get_template_list_for_action('create')
+        """
+        Returns a template to be used when rendering 'create_view'. If a
+        template is specified by the 'create_template_name' attribute,
+        that will be used. Otherwise, a list of preferred template names is
+        returned, allowing custom templates to be used by simply putting them
+        in a sensible location in an app's template directory.
+        """
+        return self.create_template_name or self.get_templates('create')
 
     def get_edit_template(self):
-        return self.get_template_list_for_action('edit')
+        """
+        Returns a template to be used when rendering 'edit_view'. If a template
+        is specified by the 'edit_template_name' attribute, that will be used.
+        Otherwise, a list of preferred template names is returned, allowing
+        custom templates to be used by simply putting them in a sensible
+        location in an app's template directory.
+        """
+        return self.edit_template_name or self.get_templates('edit')
 
-    def get_delete_template(self):
-        return self.get_template_list_for_action('confirm_delete')
+    def get_confirm_delete_template(self):
+        """
+        Returns a template to be used when rendering 'confirm_delete_view'. If
+        a template is specified by the 'confirm_delete_template_name'
+        attribute, that will be used. Otherwise, a list of preferred template
+        names is returned, allowing custom templates to be used by simply
+        putting them in a sensible location in an app's template directory.
+        """
+        return self.confirm_delete_template_name or self.get_templates(
+            'confirm_delete')
 
     def get_menu_item(self, order=None):
         """
@@ -219,16 +333,16 @@ class ModelAdmin(object):
                 name=get_url_name(self.opts, 'create')),
 
             url(get_url_pattern(self.opts, 'choose_parent'),
-                self.choose_parent_page_view,
+                self.choose_parent_view,
                 name=get_url_name(self.opts, 'choose_parent')),
 
             url(get_object_specific_url_pattern(self.opts, 'edit'),
                 self.edit_view,
                 name=get_url_name(self.opts, 'edit')),
 
-            url(get_object_specific_url_pattern(self.opts, 'delete'),
-                self.delete_view,
-                name=get_url_name(self.opts, 'delete')),
+            url(get_object_specific_url_pattern(self.opts, 'confirm_delete'),
+                self.confirm_delete_view,
+                name=get_url_name(self.opts, 'confirm_delete')),
 
             url(get_object_specific_url_pattern(self.opts, 'unpublish'),
                 self.unpublish_view,
@@ -240,6 +354,10 @@ class ModelAdmin(object):
         ]
 
         def construct_main_menu(self, request, menu_items):
+            warnings.warn((
+                "The 'construct_main_menu' method is now deprecated. You "
+                "should also remove the construct_main_menu hook from "
+                "wagtail_hooks.py in your app folder."), DeprecationWarning)
             return menu_items
 
 

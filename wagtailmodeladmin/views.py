@@ -194,7 +194,8 @@ class ObjectSpecificView(WMABaseView):
         return reverse(get_url_name(self.opts, 'edit'), args=(self.pk_safe,))
 
     def get_delete_url(self, obj=None):
-        return reverse(get_url_name(self.opts, 'delete'), args=(self.pk_safe,))
+        return reverse(get_url_name(self.opts, 'confirm_delete'),
+                       args=(self.pk_safe,))
 
 
 class IndexView(WMABaseView):
@@ -661,8 +662,8 @@ class CreateView(WMAFormView):
                     self.opts.model_name, parent.pk)
 
             # The page can be added in multiple places, so redirect to the
-            # choose_parent_page view so that the parent can be specified
-            return redirect(self.model_admin.get_choose_parent_page_url())
+            # choose_parent view so that the parent can be specified
+            return redirect(self.model_admin.get_choose_parent_url())
         return super(CreateView, self).dispatch(request, *args, **kwargs)
 
     def get_meta_title(self):
@@ -675,12 +676,11 @@ class CreateView(WMAFormView):
         return self.model_admin.get_create_template()
 
 
-class ChooseParentPageView(WMABaseView):
+class ChooseParentView(WMABaseView):
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.has_add_permission(request.user):
             return permission_denied(request)
-        return super(ChooseParentPageView, self).dispatch(request, *args,
-                                                          **kwargs)
+        return super(ChooseParentView, self).dispatch(request, *args, **kwargs)
 
     def get_page_title(self):
         return _('Add %s') % self.model_name
@@ -700,7 +700,7 @@ class ChooseParentPageView(WMABaseView):
         return render(request, self.get_template(), context)
 
     def get_template(self):
-        return self.model_admin.get_choose_parent_page_template()
+        return self.model_admin.get_choose_parent_template()
 
 
 class EditView(ObjectSpecificView, CreateView):
@@ -737,7 +737,7 @@ class EditView(ObjectSpecificView, CreateView):
         return self.model_admin.get_edit_template()
 
 
-class DeleteView(ObjectSpecificView):
+class ConfirmDeleteView(ObjectSpecificView):
     page_title = _('Delete')
 
     def check_action_permitted(self):
@@ -751,7 +751,8 @@ class DeleteView(ObjectSpecificView):
         if self.is_pagemodel:
             self.prime_session_for_redirection()
             return redirect('wagtailadmin_pages_delete', self.object_id)
-        return super(DeleteView, self).dispatch(request, *args, **kwargs)
+        return super(ConfirmDeleteView, self).dispatch(request, *args,
+                                                       **kwargs)
 
     def get_meta_title(self):
         return _('Confirm deletion of %s') % self.model_name.lower()
@@ -782,7 +783,7 @@ class DeleteView(ObjectSpecificView):
         return self.get(request, *args, **kwargs)
 
     def get_template_names(self):
-        return self.model_admin.get_delete_template()
+        return self.model_admin.get_confirm_delete_template()
 
 
 class UnpublishRedirectView(ObjectSpecificView):

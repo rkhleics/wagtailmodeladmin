@@ -57,7 +57,7 @@ class ActionButtonHelper(object):
         return {
             'title': _('Delete this %s') % self.model_name,
             'label': _('Delete'),
-            'url': self.get_action_url('delete'),
+            'url': self.get_action_url('confirm_delete'),
         }
 
     def unpublish_button(self):

@@ -16,7 +16,7 @@ class ModelAdminMenuItem(MenuItem):
             classnames=classnames, order=order)
 
     def is_show(self, request):
-        return self.model_admin.permission_helper.allow_list_view(request.user)
+        return self.model_admin.show_menu_item(request.user)
 
 
 class GroupMenuItem(SubmenuMenuItem):
