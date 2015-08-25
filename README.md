@@ -55,7 +55,7 @@ from .models import MyPageModel
 class MyPageModelAdmin(ModelAdmin):
     model = MyPageModel
     menu_label = 'Page Model' # ditch this to use verbose_name_plural from model
-    menu_icon = 'icon-date' # change as required
+    menu_icon = 'date' # change as required
     menu_order = 200 # will put in 3rd place (000 being 1st, 100 2nd)
     list_display = ('title', 'example_field2', 'example_field3', 'live')
     list_filter = ('live', 'example_field2', 'example_field3')
@@ -131,7 +131,7 @@ class MySnippetModelAdmin(ModelAdmin):
 class SomeOtherModelAdmin(ModelAdmin):
     model = SomeOtherModel
     menu_label = 'Some other model' # ditch this to use verbose_name_plural from model
-    menu_icon = 'folder-open' # change as required
+    menu_icon = 'snippet' # change as required
     list_display = ('title', 'example_field2', 'example_field3')
     list_filter = (example_field2', 'example_field3')
     search_fields = ('title',)
