@@ -10,9 +10,9 @@ from django.db.models.sql.constants import QUERY_TERMS
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.urlresolvers import reverse
 
-from django.core.exceptions import (
-    FieldDoesNotExist, ImproperlyConfigured, SuspiciousOperation,
-)
+from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
+from django.db.models.fields import FieldDoesNotExist
+
 from django.core.paginator import Paginator, InvalidPage
 
 from django.contrib.admin import FieldListFilter, widgets
