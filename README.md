@@ -5,13 +5,13 @@ It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagta
 ## A full list of features:
 
 - A customisable list view, allowing you to control what values are displayed for each item, available filter options, default ordering, and more.
-- Easily customisable menu items for the Wagtail CMS admin area, with control over the label text and icons used, and automatic 'active item' highlighting.
+- Access your list views from the CMS easily with automatically generated menu icons with automatic 'active item' highlighting. Control the label text and icons used with easy-to-change attributes on your class.
 - An additional `ModelAdminGroup` class, that allows you to group together your related models, and list them together in their own submenu, for more logical user experience.
 - Simple, robust **add** and **edit** views for your non-Page models that use the panel configurations defined on your model using Wagtail's edit panels.
 - For Page models, the system cleverly directs to Wagtail's exisitng add and edit views, and returns you back to the correct list page, for a seemless experience.
 - Full respect for permissions assigned to your Wagatail users and groups. Users will only be able to do what you want them to!
 - All you need to easily hook your `ModelAdmin` classes into Wagtail, taking care of url registraion, menu changes, and registering any missing model permissions, so that you can assign them to Groups.
-- **Built to be customisable** - While wagtailmodeladmin provides a solid experience out of the box, you can easily use your own templates, and the `ModelAdmin` class has a large number of methods that you can override or extend, allowing you to customise the behaviour to a greater degree. Or if you want full view control, you can override the included class-based views to do what you want them to. 
+- **Built to be customisable** - While wagtailmodeladmin provides a solid experience out of the box, you can easily use your own templates, and the `ModelAdmin` class has a large number of methods that you can override or extend, allowing you to customise the behaviour to a greater degree.
 
 ## Supported list options:
 
