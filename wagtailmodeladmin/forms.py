@@ -6,10 +6,7 @@ from wagtail.wagtailcore.models import Page
 class CustomModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         bits = []
-        root_page = obj.get_ancestors().get(
-            sites_rooted_here__isnull=False)
-        ancestors = obj.get_ancestors(inclusive=True)
-        for ancestor in ancestors.descendant_of(root_page, inclusive=True):
+        for ancestor in obj.get_ancestors(inclusive=True).exclude(depth=1):
             bits.append(ancestor.title)
         return ' > '.join(bits)
 
