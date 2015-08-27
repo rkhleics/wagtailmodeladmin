@@ -10,7 +10,7 @@ It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagta
 - Simple, robust **add** and **edit** views for your non-Page models that use the panel configurations defined on your model using Wagtail's edit panels.
 - For Page models, the system cleverly directs to Wagtail's exisitng add and edit views, and returns you back to the correct list page, for a seemless experience.
 - Full respect for permissions assigned to your Wagatail users and groups. Users will only be able to do what you want them to!
-- All you need to easily hook your `ModelAdmin` classes into Wagtail, taking care of url registraion, menu changes, and registering any missing model permissions, so that you can assign them to Groups.
+- All you need to easily hook your `ModelAdmin` classes into Wagtail, taking care of url registration, menu changes, and registering any missing model permissions, so that you can assign them to Groups.
 - **Built to be customisable** - While wagtailmodeladmin provides a solid experience out of the box, you can easily use your own templates, and the `ModelAdmin` class has a large number of methods that you can override or extend, allowing you to customise the behaviour to a greater degree.
 
 ## Supported list options:

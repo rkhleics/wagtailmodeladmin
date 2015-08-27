@@ -3,7 +3,6 @@ from django.db.models import Model
 from django.contrib.auth.models import Permission
 from django.conf.urls import url
 from django.core.urlresolvers import reverse
-from django.core.paginator import Paginator
 from django.core.exceptions import ImproperlyConfigured
 
 from wagtail.wagtailcore.models import Page
@@ -19,9 +18,13 @@ from .utils import (
 
 class ModelAdmin(object):
     """
-    Base class for common attributes and functionality required by
-    PageModelAdmin and SnippetModelAdmin
+    The core wagtailmodeladmin class. It provides an alternative means to
+    list and manage instances of a given 'model' within Wagtail's admin area.
+    It is essentially comprised of attributes and methods that allow a degree
+    of control over how the data is represented, and other methods to make the
+    additional functionality available via various Wagtail hooks.
     """
+
     model = None
     menu_label = None
     menu_icon = None
@@ -33,8 +36,6 @@ class ModelAdmin(object):
     search_fields = None
     ordering = None
     parent = None
-    paginator = Paginator
-    show_full_result_count = True
     index_view_class = IndexView
     create_view_class = CreateView
     edit_view_class = EditView
@@ -374,8 +375,9 @@ class ModelAdminGroup(object):
 
     def __init__(self):
         """
-        Instantiate sub-items from pagemodeladmins and snippetmodeladmins,
-        setting their parent attribue to this instance
+        When initialising, instantiate the classes within 'items', and assign
+        the instances to a 'modeladmin_instances' attribute for convienient
+        access later
         """
         self.modeladmin_instances = []
         for ModelAdminClass in self.items:
