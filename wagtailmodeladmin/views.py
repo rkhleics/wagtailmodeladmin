@@ -691,11 +691,15 @@ class ChooseParentView(WMABaseView):
 
     def get(self, request, *args, **kwargs):
         form = self.get_form(request)
+        context = {'view': self, 'form': form}
+        return render(request, self.get_template(), context)
+
+    def post(self, request, *args, **kargs):
+        form = self.get_form(request)
         if form.is_valid():
             parent = form.cleaned_data['parent_page']
             return redirect('wagtailadmin_pages_create', self.opts.app_label,
                             self.opts.model_name, quote(parent.pk))
-
         context = {'view': self, 'form': form}
         return render(request, self.get_template(), context)
 
