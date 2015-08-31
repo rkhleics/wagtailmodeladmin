@@ -15,7 +15,7 @@ It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagta
 
 ## Supported list options:
 
-With the exception of bulk actions and date heirarchy, the `ModelAdmin` class offers similar list functionality to Django's ModelAdmin class, poviding:
+With the exception of bulk actions and date heirarchy, the `ModelAdmin` class offers similar list functionality to Django's ModelAdmin class, providing:
 
 - control over what values are displayed (via the `list_display` attribute)
 - control over default ordering (via the `ordering` attribute)
