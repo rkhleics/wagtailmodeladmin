@@ -6,26 +6,26 @@ It's an extension for Torchbox's [Wagtail CMS](https://github.com/torchbox/wagta
 
 - A customisable list view, allowing you to control what values are displayed for each item, available filter options, default ordering, and more.
 - Access your list views from the CMS easily with automatically generated menu items, with automatic 'active item' highlighting. Control the label text and icons used with easy-to-change attributes on your class.
-- An additional `ModelAdminGroup` class, that allows you to group together your related models, and list them together in their own submenu, for more logical user experience.
+- An additional `ModelAdminGroup` class, that allows you to group your related models, and list them together in their own submenu, for a more logical user experience.
 - Simple, robust **add** and **edit** views for your non-Page models that use the panel configurations defined on your model using Wagtail's edit panels.
-- For Page models, the system cleverly directs to Wagtail's exisitng add and edit views, and returns you back to the correct list page, for a seemless experience.
-- Full respect for permissions assigned to your Wagatail users and groups. Users will only be able to do what you want them to!
-- All you need to easily hook your `ModelAdmin` classes into Wagtail, taking care of url registration, menu changes, and registering any missing model permissions, so that you can assign them to Groups.
+- For Page models, the system cleverly directs to Wagtail's existing add and edit views, and returns you back to the correct list page, for a seamless experience.
+- Full respect for permissions assigned to your Wagtail users and groups. Users will only be able to do what you want them to!
+- All you need to easily hook your `ModelAdmin` classes into Wagtail, taking care of URL registration, menu changes, and registering any missing model permissions, so that you can assign them to Groups.
 - **Built to be customisable** - While wagtailmodeladmin provides a solid experience out of the box, you can easily use your own templates, and the `ModelAdmin` class has a large number of methods that you can override or extend, allowing you to customise the behaviour to a greater degree.
 
 ## Supported list options:
 
-With the exception of bulk actions and date heirarchy, the `ModelAdmin` class offers similar list functionality to Django's ModelAdmin class, providing:
+With the exception of bulk actions and date hierarchy, the `ModelAdmin` class offers similar list functionality to Django's ModelAdmin class, providing:
 
 - control over what values are displayed (via the `list_display` attribute)
 - control over default ordering (via the `ordering` attribute)
 - customisable model-specific text search (via the `search_fields` attribute)
 - customisable filters (via the `list_filter` attribue)
 
-`list_display` supports the same fields and methods as Django's ModelAdmin class 
-(including `short_description` and `admin_order_field` on custom methods), giving you lots of flexibility when it comes to output. [Read more about list_display in the Django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display). 
+`list_display` supports the same fields and methods as Django's ModelAdmin class
+(including `short_description` and `admin_order_field` on custom methods), giving you lots of flexibility when it comes to output. [Read more about list_display in the Django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display).
 
-`list_filter` supports the same field types as Django's ModelAdmin class, giving your users an easy way to find what they're looking for. [Read more about list_filter in the Django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_filter). 
+`list_filter` supports the same field types as Django's ModelAdmin class, giving your users an easy way to find what they're looking for. [Read more about list_filter in the Django docs](https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_filter).
 
 
 ### Adding functionality, not taking it away
@@ -43,7 +43,7 @@ wagtailmodeladmin doesn't interfere with what Wagtail does. If your model extend
 
 You have a model in your app, and you want a listing page specifically for that model, with a menu item added to the menu in Wagtail's CMS so that you can get to it.
 
-**wagtail_hooks.py** in your app directory would look something like this: 
+**wagtail_hooks.py** in your app directory would look something like this:
 
 
 ```python
@@ -92,7 +92,7 @@ Wagtail's admin menu. Some of the models might extend Page, and others might
 be simpler models, perhaps registered as Snippets, perhaps not. No problem!
 ModelAdminGroup allows you to group them all together nicely.
 
-**wagtail_hooks.py** in your app directory would look something like this: 
+**wagtail_hooks.py** in your app directory would look something like this:
 
 ```python
 from wagtail.wagtailcore import hooks
@@ -168,7 +168,7 @@ The Wagtail CMS menu would look something like this:
 
 ## Notes
 
-- For a list of available icons that can be used, you can enable Wagtail's 
+- For a list of available icons that can be used, you can enable Wagtail's
 Styleguide (http://docs.wagtail.io/en/latest/contributing/styleguide.html),
 and view the page it creates in the CMS for you. The list of icons can be found
 toward the bottom of the page.
