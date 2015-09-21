@@ -52,7 +52,7 @@ IGNORED_PARAMS = (ORDER_VAR, ORDER_TYPE_VAR, SEARCH_VAR)
 
 # Page URL name settings
 # > v1.1
-PAGES_CREATE_URL_NAME = 'wagtailadmin_pages:create'
+PAGES_CREATE_URL_NAME = 'wagtailadmin_pages:add'
 PAGES_EDIT_URL_NAME = 'wagtailadmin_pages:edit'
 PAGES_UNPUBLISH_URL_NAME = 'wagtailadmin_pages:unpublish'
 PAGES_DELETE_URL_NAME = 'wagtailadmin_pages:delete'
