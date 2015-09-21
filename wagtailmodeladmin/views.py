@@ -34,6 +34,7 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import FormView
 
 from wagtail.wagtailadmin import messages
+from wagtail.wagtailcore import __version__ as wagtail_version
 from wagtail.wagtailadmin.edit_handlers import (
     ObjectList, extract_panel_definitions_from_model_class)
 
@@ -48,6 +49,21 @@ PAGE_VAR = 'p'
 SEARCH_VAR = 'q'
 ERROR_FLAG = 'e'
 IGNORED_PARAMS = (ORDER_VAR, ORDER_TYPE_VAR, SEARCH_VAR)
+
+# Page URL name settings
+# > v1.1
+PAGES_CREATE_URL_NAME = 'wagtailadmin_pages:create'
+PAGES_EDIT_URL_NAME = 'wagtailadmin_pages:edit'
+PAGES_UNPUBLISH_URL_NAME = 'wagtailadmin_pages:unpublish'
+PAGES_DELETE_URL_NAME = 'wagtailadmin_pages:delete'
+PAGES_COPY_URL_NAME = 'wagtailadmin_pages:copy'
+if wagtail_version.startswith('1.0') or wagtail_version.startswith('0.'):
+    # < v1.1
+    PAGES_CREATE_URL_NAME = 'wagtailadmin_pages_create'
+    PAGES_EDIT_URL_NAME = 'wagtailadmin_pages_edit'
+    PAGES_UNPUBLISH_URL_NAME = 'wagtailadmin_pages_unpublish'
+    PAGES_DELETE_URL_NAME = 'wagtailadmin_pages_delete'
+    PAGES_COPY_URL_NAME = 'wagtailadmin_pages_copy'
 
 
 class WMABaseView(TemplateView):
@@ -658,7 +674,7 @@ class CreateView(WMAFormView):
             if parent_count == 1:
                 parent = parents.get()
                 return redirect(
-                    'wagtailadmin_pages_create', self.opts.app_label,
+                    PAGES_CREATE_URL_NAME, self.opts.app_label,
                     self.opts.model_name, parent.pk)
 
             # The page can be added in multiple places, so redirect to the
@@ -698,7 +714,7 @@ class ChooseParentView(WMABaseView):
         form = self.get_form(request)
         if form.is_valid():
             parent = form.cleaned_data['parent_page']
-            return redirect('wagtailadmin_pages_create', self.opts.app_label,
+            return redirect(PAGES_CREATE_URL_NAME, self.opts.app_label,
                             self.opts.model_name, quote(parent.pk))
         context = {'view': self, 'form': form}
         return render(request, self.get_template(), context)
@@ -720,7 +736,7 @@ class EditView(ObjectSpecificView, CreateView):
             return permission_denied(request)
         if self.is_pagemodel:
             self.prime_session_for_redirection()
-            return redirect('wagtailadmin_pages_edit', self.object_id)
+            return redirect(PAGES_EDIT_URL_NAME, self.object_id)
         return super(CreateView, self).dispatch(request, *args, **kwargs)
 
     def get_meta_title(self):
@@ -754,7 +770,7 @@ class ConfirmDeleteView(ObjectSpecificView):
             return permission_denied(request)
         if self.is_pagemodel:
             self.prime_session_for_redirection()
-            return redirect('wagtailadmin_pages_delete', self.object_id)
+            return redirect(PAGES_DELETE_URL_NAME, self.object_id)
         return super(ConfirmDeleteView, self).dispatch(request, *args,
                                                        **kwargs)
 
@@ -800,7 +816,7 @@ class UnpublishRedirectView(ObjectSpecificView):
         if not self.check_action_permitted():
             return permission_denied(request)
         self.prime_session_for_redirection()
-        return redirect('wagtailadmin_pages_unpublish', self.object_id)
+        return redirect(PAGES_UNPUBLISH_URL_NAME, self.object_id)
 
 
 class CopyRedirectView(ObjectSpecificView):
@@ -813,4 +829,4 @@ class CopyRedirectView(ObjectSpecificView):
         if not self.check_action_permitted():
             return permission_denied(request)
         self.prime_session_for_redirection()
-        return redirect('wagtailadmin_pages_copy', self.object_id)
+        return redirect(PAGES_COPY_URL_NAME, self.object_id)
