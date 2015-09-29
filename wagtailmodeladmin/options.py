@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import ImproperlyConfigured
 
 from wagtail.wagtailcore.models import Page
+from wagtail.wagtailcore import hooks
 
 from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .permission_helpers import PermissionHelper, PagePermissionHelper
@@ -16,7 +17,28 @@ from .utils import (
     get_url_pattern, get_object_specific_url_pattern, get_url_name)
 
 
-class ModelAdmin(object):
+class WagtailRegisterable(object):
+    """
+    Base class, providing a more convinient way for ModelAdmin or
+    ModelAdminGroup instances to be registered with Wagtail's admin area.
+    """
+
+    def register_with_wagtail(self):
+
+        @hooks.register('register_permissions')
+        def register_permissions():
+            return self.get_permissions_for_registration()
+
+        @hooks.register('register_admin_urls')
+        def register_admin_urls():
+            return self.get_admin_urls_for_registration()
+
+        @hooks.register('register_admin_menu_item')
+        def register_admin_menu_item():
+            return self.get_menu_item()
+
+
+class ModelAdmin(WagtailRegisterable):
     """
     The core wagtailmodeladmin class. It provides an alternative means to
     list and manage instances of a given 'model' within Wagtail's admin area.
@@ -362,7 +384,7 @@ class ModelAdmin(object):
             return menu_items
 
 
-class ModelAdminGroup(object):
+class ModelAdminGroup(WagtailRegisterable):
     """
     Acts as a container for grouping together mutltiple PageModelAdmin and
     SnippetModelAdmin instances. Creates a menu item with a SubMenu for
