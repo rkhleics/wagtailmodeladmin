@@ -60,7 +60,7 @@ class MyPageModelAdmin(ModelAdmin):
     list_filter = ('live', 'example_field2', 'example_field3')
     search_fields = ('title',)
 
-# We instantiate the 'MyPageModelAdmin' class to use with the hooks below
+# We instantiate the 'MyPageModelAdmin' class and register the instance with Wagtail
 hook_instance = MyPageModelAdmin()
 hook_instance.register_with_wagtail()
 ```
@@ -127,7 +127,7 @@ class MyModelAdminGroup(ModelAdminGroup):
     menu_order = 200 # will put in 3rd place (000 being 1st, 100 2nd)
     items = (MyPageModelAdmin, MyOtherPageModelAdmin, MySnippetModelAdmin, SomeOtherModelAdmin)
 
-# We instantiate the 'MyModelAdminGroup' class to use with the hooks below
+# We instantiate the 'MyModelAdminGroup' class and register the instance with Wagtail
 hook_instance = MyModelAdminGroup()
 hook_instance.register_with_wagtail()
 ```
