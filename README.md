@@ -47,7 +47,6 @@ You have a model in your app, and you want a listing page specifically for that 
 
 
 ```python
-from wagtail.wagtailcore import hooks
 from wagtailmodeladmin.options import ModelAdmin
 from .models import MyPageModel
 
@@ -63,21 +62,7 @@ class MyPageModelAdmin(ModelAdmin):
 
 # We instantiate the 'MyPageModelAdmin' class to use with the hooks below
 hook_instance = MyPageModelAdmin()
-
-
-@hooks.register('register_permissions')
-def register_permissions():
-    return hook_instance.get_permissions_for_registration()
-
-
-@hooks.register('register_admin_urls')
-def register_admin_urls():
-    return hook_instance.get_admin_urls_for_registration()
-
-
-@hooks.register('register_admin_menu_item')
-def register_admin_menu_item():
-    return hook_instance.get_menu_item()
+hook_instance.register_with_wagtail()
 ```
 
 The Wagtail CMS menu would look something like this:
@@ -95,7 +80,6 @@ ModelAdminGroup allows you to group them all together nicely.
 **wagtail_hooks.py** in your app directory would look something like this:
 
 ```python
-from wagtail.wagtailcore import hooks
 from wagtailmodeladmin.options import ModelAdmin, ModelAdminGroup
 from .models import (
     MyPageModel, MyOtherPageModel, MySnippetModel, SomeOtherModel)
@@ -145,21 +129,7 @@ class MyModelAdminGroup(ModelAdminGroup):
 
 # We instantiate the 'MyModelAdminGroup' class to use with the hooks below
 hook_instance = MyModelAdminGroup()
-
-
-@hooks.register('register_permissions')
-def register_permissions():
-    return hook_instance.get_permissions_for_registration()
-
-
-@hooks.register('register_admin_urls')
-def register_admin_urls():
-    return hook_instance.get_admin_urls_for_registration()
-
-
-@hooks.register('register_admin_menu_item')
-def register_admin_menu_item():
-    return hook_instance.get_menu_item()
+hook_instance.register_with_wagtail()
 ```
 
 The Wagtail CMS menu would look something like this:
