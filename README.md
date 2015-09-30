@@ -59,7 +59,8 @@ class MyPageModelAdmin(ModelAdmin):
     list_display = ('title', 'example_field2', 'example_field3', 'live')
     list_filter = ('live', 'example_field2', 'example_field3')
     search_fields = ('title',)
-
+    
+# Now you just need to register your customised ModelAdmin class with Wagtail
 wagtailmodeladmin_register(MyPageModelAdmin)
 ```
 
@@ -126,6 +127,8 @@ class MyModelAdminGroup(ModelAdminGroup):
     menu_order = 200 # will put in 3rd place (000 being 1st, 100 2nd)
     items = (MyPageModelAdmin, MyOtherPageModelAdmin, MySnippetModelAdmin, SomeOtherModelAdmin)
 
+# When using a ModelAdminGroup class to group several ModelAdmin classes together,
+# you only need to register the ModelAdminGroup class with Wagtail:
 wagtailmodeladmin_register(MyModelAdminGroup)
 ```
 
