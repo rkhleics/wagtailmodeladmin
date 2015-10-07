@@ -47,7 +47,7 @@ You have a model in your app, and you want a listing page specifically for that 
 
 
 ```python
-from wagtailmodeladmin.options import ModelAdmin
+from wagtailmodeladmin.options import ModelAdmin, wagtailmodeladmin_register
 from .models import MyPageModel
 
 
@@ -59,10 +59,9 @@ class MyPageModelAdmin(ModelAdmin):
     list_display = ('title', 'example_field2', 'example_field3', 'live')
     list_filter = ('live', 'example_field2', 'example_field3')
     search_fields = ('title',)
-
-# We instantiate the 'MyPageModelAdmin' class and register the instance with Wagtail
-hook_instance = MyPageModelAdmin()
-hook_instance.register_with_wagtail()
+    
+# Now you just need to register your customised ModelAdmin class with Wagtail
+wagtailmodeladmin_register(MyPageModelAdmin)
 ```
 
 The Wagtail CMS menu would look something like this:
@@ -80,7 +79,8 @@ ModelAdminGroup allows you to group them all together nicely.
 **wagtail_hooks.py** in your app directory would look something like this:
 
 ```python
-from wagtailmodeladmin.options import ModelAdmin, ModelAdminGroup
+from wagtailmodeladmin.options import (
+    ModelAdmin, ModelAdminGroup, wagtailmodeladmin_register)
 from .models import (
     MyPageModel, MyOtherPageModel, MySnippetModel, SomeOtherModel)
 
@@ -127,9 +127,9 @@ class MyModelAdminGroup(ModelAdminGroup):
     menu_order = 200 # will put in 3rd place (000 being 1st, 100 2nd)
     items = (MyPageModelAdmin, MyOtherPageModelAdmin, MySnippetModelAdmin, SomeOtherModelAdmin)
 
-# We instantiate the 'MyModelAdminGroup' class and register the instance with Wagtail
-hook_instance = MyModelAdminGroup()
-hook_instance.register_with_wagtail()
+# When using a ModelAdminGroup class to group several ModelAdmin classes together,
+# you only need to register the ModelAdminGroup class with Wagtail:
+wagtailmodeladmin_register(MyModelAdminGroup)
 ```
 
 The Wagtail CMS menu would look something like this:
