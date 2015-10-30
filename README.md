@@ -34,7 +34,7 @@ wagtailmodeladmin doesn't interfere with what Wagtail does. If your model extend
 
 ## How to install
 
-1. Install the package using pip: `pip install git+git://github.com/ababic/wagtailmodeladmin`
+1. Install the package using pip: `pip install wagtailmodeladmin`
 2. Add `wagtailmodeladmin` to `INSTALLED_APPS` in your project settings
 3. Add the `wagtailmodeladmin.middleware.ModelAdminMiddleware` class to `MIDDLEWARE_CLASSES` in your project settings (it should be fine at the end)
 4. Add a `wagtail_hooks.py` file to your app's folder and extend the `ModelAdmin`, and `ModelAdminGroup` classes to produce the desired effect
