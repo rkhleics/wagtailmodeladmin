@@ -28,34 +28,30 @@ class ModelAdminMiddleware(object):
             try:
                 """
                 We only want to redirect if we're on the 'wagtailadmin_explore'
-                url, and we have something to redirect to.
+                view, and we have something to redirect to.
                 """
-                resolver_match = resolve(request.path)
                 if all((
-                    resolver_match.url_name == 'wagtailadmin_explore',
                     return_to_index_url,
-                    referer_url)
-                ):
-                    referer_match = resolve(urlparse(referer_url).path)
-                    referer_name = referer_match.url_name
-                    referer_ns = referer_match.namespace
-
+                    referer_url,
+                    resolve(request.path).url_name == 'wagtailadmin_explore',
+                )):
                     perform_redirection = False
-                    if all([
-                        referer_ns == 'wagtailadmin_pages',
-                        referer_name in ('add', 'edit', 'delete', 'unpublish',
-                                         'copy'),
-                    ]):
+                    referer_match = resolve(urlparse(referer_url).path)
+                    if all((
+                        referer_match.namespace == 'wagtailadmin_pages',
+                        referer_match.url_name in (
+                            'add', 'edit', 'delete', 'unpublish', 'copy'),
+                    )):
                         perform_redirection = True
-                    elif all([
-                        not referer_ns,
-                        referer_name in (
+                    elif all((
+                        not referer_match.namespace,
+                        referer_match.url_name in (
                             'wagtailadmin_pages_create',
                             'wagtailadmin_pages_edit',
                             'wagtailadmin_pages_delete',
                             'wagtailadmin_pages_unpublish'
                         ),
-                    ]):
+                    )):
                         perform_redirection = True
                     if perform_redirection:
                         del request.session['return_to_index_url']
