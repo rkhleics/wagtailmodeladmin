@@ -35,7 +35,7 @@
 
 <div id="content-main">
     <div class="row" id="changelist">
-    
+
     {% block filters %}
         {% if view.has_filters and all_count %}
         <div id="changelist-filter" class="col3">
@@ -47,7 +47,7 @@
 
     <div id="result_list" class="{% if view.has_filters and all_count %}col9{% else %}col12{% endif %}">
 
-        
+
 
         {% block result_list %}
             {% if not all_count %}
@@ -61,7 +61,7 @@
                         <p>{% blocktrans with view.model_name_plural|lower as name %}No {{ name }} have been created yet.{% endblocktrans %}
                         {% if has_add_permission %}
                             {% blocktrans with view.get_create_url as url %}
-                                Why not <a href="{{ url }}">add one</a>? 
+                                Why not <a href="{{ url }}">add one</a>?
                             {% endblocktrans %}
                         {% endif %}</p>
                     {% endif %}
@@ -71,10 +71,10 @@
             {% endif %}
         {% endblock %}
     </div>
-   
+
     {% block pagination %}
         <div class="pagination {% if view.has_filters and all_count %}col9{% else %}col12{% endif %}">
-            <p>Page {{ page_obj.number }} of {{ paginator.num_pages }}.</p>
+            <p>{% blocktrans with page_obj.number as current_page and paginator.num_pages as num_pages %}Page {{ current_page }} of {{ num_pages }}.{% endblocktrans %}</p>
             {% if paginator.num_pages > 1 %}
                 <ul>
                     {% pagination_link_previous page_obj view %}
