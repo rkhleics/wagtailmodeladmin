@@ -1,5 +1,6 @@
 include LICENSE
 include README.rst
 recursive-include wagtailmodeladmin/static *.css
+recursive-include wagtailmodeladmin/templates *.html
 recursive-include wagtailmodeladmin/locale *.po
-recursive-include wagtailmodeladmin *.py *.html
+recursive-include wagtailmodeladmin *.py
