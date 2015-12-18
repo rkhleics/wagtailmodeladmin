@@ -1,6 +1,5 @@
-include LICENSE README.md README.rst
-recursive-include docs *
-recursive-exclude docs *.pyc
-recursive-exclude docs *.pyo
-recursive-include wagtailmodeladmin *
-recursive-exclude wagtailmodeladmin *.pyc
+include LICENSE
+include README.rst
+recursive-include wagtailmodeladmin/static *.css
+recursive-include wagtailmodeladmin/locale *.po
+recursive-include wagtailmodeladmin *.py *.html
