@@ -1,14 +1,14 @@
 from django import forms
 from django.utils.translation import ugettext as _
 from wagtail.wagtailcore.models import Page
-
+from django.utils.safestring import mark_safe
 
 class CustomModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         bits = []
         for ancestor in obj.get_ancestors(inclusive=True).exclude(depth=1):
             bits.append(ancestor.title)
-        return ' > '.join(bits)
+        return mark_safe('<span class="icon icon-arrow-right"></span>'.join(bits))
 
 
 class ParentChooserForm(forms.Form):
