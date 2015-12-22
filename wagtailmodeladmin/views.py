@@ -40,7 +40,6 @@ from wagtail.wagtailadmin.edit_handlers import (
 
 from .helpers import get_url_name, ButtonHelper, PageButtonHelper
 from .forms import ParentChooserForm
-from .utils import permission_denied
 
 # IndexView settings
 ORDER_VAR = 'o'
@@ -64,6 +63,12 @@ if wagtail_version.startswith('1.0') or wagtail_version.startswith('0.'):
     PAGES_UNPUBLISH_URL_NAME = 'wagtailadmin_pages_unpublish'
     PAGES_DELETE_URL_NAME = 'wagtailadmin_pages_delete'
     PAGES_COPY_URL_NAME = 'wagtailadmin_pages_copy'
+
+
+def permission_denied_response(request):
+    messages.error(
+        request, _('Sorry, you do not have permission to access this area.'))
+    return redirect('wagtailadmin_home')
 
 
 class WMABaseView(TemplateView):
@@ -240,7 +245,7 @@ class IndexView(WMABaseView):
         self.queryset = self.get_queryset(request)
 
         if not self.permission_helper.allow_list_view(request.user):
-            return permission_denied(request)
+            return permission_denied_response(request)
         return super(IndexView, self).dispatch(request, *args, **kwargs)
 
     def get_button_helper_class(self, user, obj):
@@ -669,7 +674,7 @@ class CreateView(WMAFormView):
 
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.has_add_permission(request.user):
-            return permission_denied(request)
+            return permission_denied_response(request)
 
         if self.is_pagemodel:
             self.prime_session_for_redirection()
@@ -703,7 +708,7 @@ class CreateView(WMAFormView):
 class ChooseParentView(WMABaseView):
     def dispatch(self, request, *args, **kwargs):
         if not self.permission_helper.has_add_permission(request.user):
-            return permission_denied(request)
+            return permission_denied_response(request)
         return super(ChooseParentView, self).dispatch(request, *args, **kwargs)
 
     def get_page_title(self):
@@ -741,7 +746,7 @@ class EditView(ObjectSpecificView, CreateView):
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         if not self.check_action_permitted():
-            return permission_denied(request)
+            return permission_denied_response(request)
         if self.is_pagemodel:
             self.prime_session_for_redirection()
             return redirect(PAGES_EDIT_URL_NAME, self.object_id)
@@ -775,7 +780,7 @@ class ConfirmDeleteView(ObjectSpecificView):
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         if not self.check_action_permitted():
-            return permission_denied(request)
+            return permission_denied_response(request)
         if self.is_pagemodel:
             self.prime_session_for_redirection()
             return redirect(PAGES_DELETE_URL_NAME, self.object_id)
@@ -822,7 +827,7 @@ class UnpublishRedirectView(ObjectSpecificView):
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         if not self.check_action_permitted():
-            return permission_denied(request)
+            return permission_denied_response(request)
         self.prime_session_for_redirection()
         return redirect(PAGES_UNPUBLISH_URL_NAME, self.object_id)
 
@@ -835,6 +840,6 @@ class CopyRedirectView(ObjectSpecificView):
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         if not self.check_action_permitted():
-            return permission_denied(request)
+            return permission_denied_response(request)
         self.prime_session_for_redirection()
         return redirect(PAGES_COPY_URL_NAME, self.object_id)
