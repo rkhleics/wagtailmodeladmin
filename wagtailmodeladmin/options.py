@@ -4,6 +4,7 @@ from django.contrib.auth.models import Permission
 from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.safestring import mark_safe
 
 from wagtail.wagtailcore.models import Page
 from wagtail.wagtailcore import hooks
@@ -51,6 +52,7 @@ class ModelAdmin(WagtailRegisterable):
     menu_icon = None
     menu_order = None
     list_display = ('__str__',)
+    empty_value_display = '-'
     list_filter = ()
     list_select_related = False
     list_per_page = 100
@@ -134,6 +136,12 @@ class ModelAdmin(WagtailRegisterable):
         in the list view.
         """
         return self.list_display
+
+    def get_empty_value_display(self):
+        """
+        Return the empty_value_display set on ModelAdmin.
+        """
+        return mark_safe(self.empty_value_display)
 
     def get_list_filter(self, request):
         """
