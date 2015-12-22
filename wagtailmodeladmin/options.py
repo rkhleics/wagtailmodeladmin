@@ -424,6 +424,14 @@ class ModelAdminGroup(WagtailRegisterable):
     def get_menu_order(self):
         return self.menu_order or 999
 
+    def get_submenu_items(self):
+        menu_items = []
+        item_order = 1
+        for modeladmin in self.modeladmin_instances:
+            menu_items.append(modeladmin.get_menu_item(order=item_order))
+            item_order += 1
+        return menu_items
+
     def get_menu_item(self):
         """
         Utilised by Wagtail's 'register_menu_item' hook to create a menu
@@ -431,12 +439,7 @@ class ModelAdminGroup(WagtailRegisterable):
         associated ModelAdmin instances
         """
         if self.modeladmin_instances:
-            menu_items = []
-            item_order = 0
-            for modeladmin in self.modeladmin_instances:
-                item_order += 1
-                menu_items.append(modeladmin.get_menu_item(order=item_order))
-            submenu = SubMenu(menu_items)
+            submenu = SubMenu(self.get_submenu_items())
             return GroupMenuItem(self, self.get_menu_order(), submenu)
 
     def get_permissions_for_registration(self):
