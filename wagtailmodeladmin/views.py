@@ -38,8 +38,9 @@ from wagtail.wagtailcore import __version__ as wagtail_version
 from wagtail.wagtailadmin.edit_handlers import (
     ObjectList, extract_panel_definitions_from_model_class)
 
-from .utils import get_url_name, ActionButtonHelper, permission_denied
+from .helpers import get_url_name, ButtonHelper, PageButtonHelper
 from .forms import ParentChooserForm
+from .utils import permission_denied
 
 # IndexView settings
 ORDER_VAR = 'o'
@@ -212,6 +213,8 @@ class ObjectSpecificView(WMABaseView):
 
 class IndexView(WMABaseView):
 
+    button_helper_class = None
+
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         self.list_display = self.model_admin.get_list_display(request)
@@ -240,9 +243,17 @@ class IndexView(WMABaseView):
             return permission_denied(request)
         return super(IndexView, self).dispatch(request, *args, **kwargs)
 
+    def get_button_helper_class(self, user, obj):
+        if self.button_helper_class:
+            return self.button_helper_class
+        if self.is_pagemodel:
+            return PageButtonHelper
+        return ButtonHelper
+
     def get_action_buttons_for_obj(self, user, obj):
-        bh = ActionButtonHelper(self.model, self.permission_helper, user, obj)
-        return bh.get_permitted_buttons()
+        helper_class = self.get_button_helper_class(user, obj)
+        helper = helper_class(self.model, self.permission_helper, user, obj)
+        return helper.get_permitted_buttons()
 
     def get_search_results(self, request, queryset, search_term):
         """
