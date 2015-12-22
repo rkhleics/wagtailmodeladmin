@@ -38,7 +38,6 @@ from wagtail.wagtailcore import __version__ as wagtail_version
 from wagtail.wagtailadmin.edit_handlers import (
     ObjectList, extract_panel_definitions_from_model_class)
 
-from .permission_helpers import PermissionHelper, PagePermissionHelper
 from .utils import get_url_name, ActionButtonHelper, permission_denied
 from .forms import ParentChooserForm
 
@@ -81,10 +80,7 @@ class WMABaseView(TemplateView):
         self.opts = model_admin.model._meta
         self.pk_attname = self.opts.pk.attname
         self.is_pagemodel = model_admin.is_pagemodel
-        if self.is_pagemodel:
-            self.permission_helper = PagePermissionHelper(self.model)
-        else:
-            self.permission_helper = PermissionHelper(self.model)
+        self.permission_helper = model_admin.permission_helper
 
     @cached_property
     def app_label(self):
