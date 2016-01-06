@@ -5,7 +5,7 @@ from django.core.urlresolvers import resolve, reverse, Resolver404
 
 class ModelAdminMiddleware(object):
     """
-    Whenever loading wagtail's wagtailadmin_explore url, we check the session
+    Whenever loading wagtail's wagtailadmin_explore views, we check the session
     for a `return_to_list_url` value (set by some views), to see if the user
     should be redirected to a custom list view instead, and if so, redirect
     them to it.
