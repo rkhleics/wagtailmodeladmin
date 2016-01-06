@@ -79,13 +79,11 @@ class PermissionHelper(object):
         For typical models, we only want to allow viewing of the list page
         if the user has permission to do something
         """
-        if (
+        return (
             self.has_add_permission(user) or
             self.has_edit_permission(user) or
             self.has_delete_permission(user)
-        ):
-            return True
-        return False
+        )
 
 
 class PagePermissionHelper(PermissionHelper):
