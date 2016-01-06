@@ -3,6 +3,7 @@ from django.utils.translation import ugettext as _
 from wagtail.wagtailcore.models import Page
 from django.utils.safestring import mark_safe
 
+
 class CustomModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         bits = []

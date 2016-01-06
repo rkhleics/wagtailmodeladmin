@@ -19,7 +19,7 @@ from .views import (
 
 class WagtailRegisterable(object):
     """
-    Base class, providing a more convinient way for ModelAdmin or
+    Base class, providing a more convenient way for ModelAdmin or
     ModelAdminGroup instances to be registered with Wagtail's admin area.
     """
 
@@ -220,7 +220,7 @@ class ModelAdmin(WagtailRegisterable):
     def edit_view(self, request, object_id):
         """
         Instantiates a class-based view to provide 'edit' functionality for the
-        assigned model, or redirect to Wagtail's edit view if the assinged
+        assigned model, or redirect to Wagtail's edit view if the assigned
         model extends 'Page'. The view class used can be overridden by changing
         the  'edit_view_class' attribute.
         """
@@ -232,7 +232,7 @@ class ModelAdmin(WagtailRegisterable):
         """
         Instantiates a class-based view to provide 'delete confirmation'
         functionality for the assigned model, or redirect to Wagtail's delete
-        confirmation view if the assinged model extends 'Page'. The view class
+        confirmation view if the assigned model extends 'Page'. The view class
         used can be overridden by changing the 'confirm_delete_view_class'
         attribute.
         """
@@ -268,7 +268,7 @@ class ModelAdmin(WagtailRegisterable):
 
     def get_templates(self, action='index'):
         """
-        Utility funtion that provides a list of templates to try for a given
+        Utility function that provides a list of templates to try for a given
         view, when the template isn't overridden by one of the template
         attributes on the class.
         """
@@ -399,7 +399,7 @@ class ModelAdmin(WagtailRegisterable):
 
 class ModelAdminGroup(WagtailRegisterable):
     """
-    Acts as a container for grouping together mutltiple PageModelAdmin and
+    Acts as a container for grouping together multiple PageModelAdmin and
     SnippetModelAdmin instances. Creates a menu item with a SubMenu for
     accessing the listing pages of those instances
     """
@@ -411,7 +411,7 @@ class ModelAdminGroup(WagtailRegisterable):
     def __init__(self):
         """
         When initialising, instantiate the classes within 'items', and assign
-        the instances to a 'modeladmin_instances' attribute for convienient
+        the instances to a 'modeladmin_instances' attribute for convenient
         access later
         """
         self.modeladmin_instances = []
