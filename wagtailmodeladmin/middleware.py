@@ -21,13 +21,13 @@ class ModelAdminMiddleware(object):
         referer_url = request.META.get('HTTP_REFERER')
         return_to_index_url = request.session.get('return_to_index_url')
 
-        if all([
+        if all((
             return_to_index_url,
             referer_url,
             request.method == 'GET',
             not request.is_ajax(),
             request.path.startswith(reverse('wagtailadmin_explore_root')),
-        ]):
+        )):
             try:
                 perform_redirection = False
                 referer_match = resolve(urlparse(referer_url).path)
