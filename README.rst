@@ -112,6 +112,7 @@ this:
         search_fields = ('title',)
         
     # Now you just need to register your customised ModelAdmin class with Wagtail
+    # Optionally pass True as a second parameter to add your model into Wagtail's Settings menu
     wagtailmodeladmin_register(MyPageModelAdmin)
 
 The Wagtail CMS menu would look something like this:
