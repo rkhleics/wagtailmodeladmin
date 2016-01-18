@@ -22,7 +22,9 @@ class WagtailRegisterable(object):
     Base class, providing a more convenient way for ModelAdmin or
     ModelAdminGroup instances to be registered with Wagtail's admin area.
     """
-    def register_with_wagtail(self, register_in_settings=False):
+    add_to_settings_menu = False
+
+    def register_with_wagtail(self):
 
         @hooks.register('register_permissions')
         def register_permissions():
@@ -33,7 +35,7 @@ class WagtailRegisterable(object):
             return self.get_admin_urls_for_registration()
 
         menu_hook = (
-            'register_settings_menu_item' if register_in_settings else
+            'register_settings_menu_item' if self.add_to_settings_menu else
             'register_admin_menu_item'
         )
 
@@ -516,10 +518,10 @@ class AppModelAdmin(ModelAdminGroup):
         super(AppModelAdmin, self).__init__()
 
 
-def wagtailmodeladmin_register(wagtailmodeladmin_class, register_in_settings=False):
+def wagtailmodeladmin_register(wagtailmodeladmin_class):
     """
     Alternative one-line method for registering ModelAdmin or ModelAdminGroup
     classes with Wagtail.
     """
     instance = wagtailmodeladmin_class()
-    instance.register_with_wagtail(register_in_settings)
+    instance.register_with_wagtail()
