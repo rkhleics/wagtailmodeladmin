@@ -173,6 +173,8 @@ def get_url_name(model_meta, action='index'):
 
 class ButtonHelper(object):
 
+    default_button_classname = 'button button-small bicolor icon'
+
     def __init__(self, model, permission_helper, user):
         self.user = user
         self.model = model
@@ -198,7 +200,7 @@ class ButtonHelper(object):
         return {
             'url': self.get_action_url('edit', pk),
             'label': _('Edit'),
-            'classname': 'button button-small button-secondary',
+            'classname': self.default_button_classname + ' icon-edit',
             'title': _('Edit this %s') % self.model_name,
         }
 
@@ -206,7 +208,7 @@ class ButtonHelper(object):
         return {
             'url': self.get_action_url('confirm_delete', pk),
             'label': _('Delete'),
-            'classname': 'button button-small button-secondary',
+            'classname': self.default_button_classname + ' no icon-bin',
             'title': _('Delete this %s') % self.model_name,
         }
 
@@ -227,7 +229,7 @@ class PageButtonHelper(ButtonHelper):
         return {
             'url': self.get_action_url('unpublish', pk),
             'label': _('Unpublish'),
-            'classname': 'button button-small button-secondary',
+            'classname': self.default_button_classname + ' icon-cog',
             'title': _('Unpublish this %s') % self.model_name,
         }
 
@@ -235,7 +237,7 @@ class PageButtonHelper(ButtonHelper):
         return {
             'url': self.get_action_url('copy', pk),
             'label': _('Copy'),
-            'classname': 'button button-small button-secondary',
+            'classname': self.default_button_classname + ' icon-plus-inverse',
             'title': _('Copy this %s') % self.model_name,
         }
 
@@ -247,8 +249,8 @@ class PageButtonHelper(ButtonHelper):
             buttons.append(self.edit_button(pk))
         if self.permission_helper.can_copy_object(user, obj):
             buttons.append(self.copy_button(pk))
-        if self.permission_helper.can_delete_object(user, obj):
-            buttons.append(self.delete_button(pk))
         if self.permission_helper.can_unpublish_object(user, obj):
             buttons.append(self.unpublish_button(pk))
+        if self.permission_helper.can_delete_object(user, obj):
+            buttons.append(self.delete_button(pk))
         return buttons
