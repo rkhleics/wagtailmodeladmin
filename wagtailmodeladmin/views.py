@@ -38,7 +38,7 @@ from wagtail.wagtailcore import __version__ as wagtail_version
 from wagtail.wagtailadmin.edit_handlers import (
     ObjectList, extract_panel_definitions_from_model_class)
 
-from .helpers import get_url_name, ButtonHelper, PageButtonHelper
+from .helpers import get_url_name
 from .forms import ParentChooserForm
 
 # IndexView settings
@@ -87,6 +87,13 @@ class WMABaseView(TemplateView):
         self.pk_attname = self.opts.pk.attname
         self.is_pagemodel = model_admin.is_pagemodel
         self.permission_helper = model_admin.permission_helper
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        button_helper_class = self.model_admin.get_button_helper_class()
+        self.button_helper = button_helper_class(
+            self.model, self.permission_helper, request.user)
+        return super(WMABaseView, self).dispatch(request, *args, **kwargs)
 
     @cached_property
     def app_label(self):
@@ -209,6 +216,10 @@ class ObjectSpecificView(WMABaseView):
     def check_action_permitted(self):
         return True
 
+    def allow_object_delete(self):
+        user = self.request.user
+        return self.permission_helper.can_delete_object(user, self.instance)
+
     def get_edit_url(self, obj=None):
         return reverse(get_url_name(self.opts, 'edit'), args=(self.pk_safe,))
 
@@ -218,8 +229,6 @@ class ObjectSpecificView(WMABaseView):
 
 
 class IndexView(WMABaseView):
-
-    button_helper_class = None
 
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
@@ -247,19 +256,8 @@ class IndexView(WMABaseView):
 
         if not self.permission_helper.allow_list_view(request.user):
             return permission_denied_response(request)
+
         return super(IndexView, self).dispatch(request, *args, **kwargs)
-
-    def get_button_helper_class(self, user, obj):
-        if self.button_helper_class:
-            return self.button_helper_class
-        if self.is_pagemodel:
-            return PageButtonHelper
-        return ButtonHelper
-
-    def get_action_buttons_for_obj(self, user, obj):
-        helper_class = self.get_button_helper_class(user, obj)
-        helper = helper_class(self.model, self.permission_helper, user, obj)
-        return helper.get_permitted_buttons()
 
     def get_search_results(self, request, queryset, search_term):
         """
@@ -628,10 +626,10 @@ class IndexView(WMABaseView):
 
     def get_context_data(self, request, *args, **kwargs):
         user = request.user
-        has_add_permission = self.permission_helper.has_add_permission(user)
         all_count = self.get_base_queryset(request).count()
         queryset = self.get_queryset(request)
         result_count = queryset.count()
+        has_add_permission = self.permission_helper.has_add_permission(user)
         paginator = Paginator(queryset, self.items_per_page)
 
         try:

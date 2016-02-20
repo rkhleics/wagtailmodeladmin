@@ -23,10 +23,10 @@
             </div>
             {% block search %}{% search_form view %}{% endblock %}
         </div>
-        {% if has_add_permission %}
+        {% if has_add_permission and view.button_helper.add_button %}
         <div class="right">
             <div class="addbutton">
-                <a href="{{ view.get_create_url }}" class="button bicolor icon icon-plus">{% blocktrans with view.model_name as name %}Add {{ name }}{% endblocktrans %}</a>
+                {% include 'wagtailmodeladmin/includes/button.html' with button=view.button_helper.add_button %}
             </div>
         </div>
         {% endif %}
@@ -46,8 +46,6 @@
     {% endblock %}
 
     <div id="result_list" class="{% if view.has_filters and all_count %}col9{% else %}col12{% endif %}">
-
-
 
         {% block result_list %}
             {% if not all_count %}
