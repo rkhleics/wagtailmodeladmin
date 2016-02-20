@@ -4,8 +4,13 @@ from wagtailmodeladmin.helpers import ButtonHelper, PermissionHelper
 
 
 class TreebeardPermissionHelper(PermissionHelper):
+    """
+    A custom PermissionHelper class for working with tree-based models that
+    extend Treebeard's `MP_Node` model
+    """
 
     def can_delete_object(self, user, obj):
+        """Disable deletion of an object/node if it has children"""
         if obj.numchild:
             return False
         return super(TreebeardPermissionHelper, self).can_delete_object(
@@ -13,6 +18,10 @@ class TreebeardPermissionHelper(PermissionHelper):
 
 
 class TreebeardButtonHelper(ButtonHelper):
+    """
+    A custom ButtonHelper class for working with tree-based models that
+    extend Treebeard's `MP_Node` model
+    """
 
     def add_sibling_after_button(self, pk):
         return {
@@ -54,6 +63,11 @@ class TreebeardButtonHelper(ButtonHelper):
         }
 
     def get_buttons_for_obj(self, obj):
+        """
+        Provide different sets of buttons, depending on whether the model
+        uses 'node_order_by' to automatically order tree nodes, or the
+        positioning is user controlled.
+        """
         pk = quote(getattr(obj, self.opts.pk.attname))
         buttons = []
         if self.permission_helper.can_edit_object(self.user, obj):
