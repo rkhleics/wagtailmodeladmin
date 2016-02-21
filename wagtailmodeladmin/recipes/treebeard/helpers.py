@@ -28,7 +28,7 @@ class TreebeardButtonHelper(ButtonHelper):
             'url': '%s?sibling_id=%s&pos=right' % (
                 self.get_action_url('create'), pk),
             'label': _('Add after'),
-            'classname': self.default_button_classname + ' icon-arrow-down-big',
+            'classname': self.default_button_classname + ' icon-plus',
             'title': _('Add a new %s after this one, at the same level') % (
                 self.model_name),
         }
@@ -38,7 +38,7 @@ class TreebeardButtonHelper(ButtonHelper):
             'url': '%s?sibling_id=%s&pos=left' % (
                 self.get_action_url('create'), pk),
             'label': _('Add before'),
-            'classname': self.default_button_classname + ' icon-arrow-up-big',
+            'classname': self.default_button_classname + ' icon-plus',
             'title': _('Add a new %s before this one, at the same level') % (
                 self.model_name),
         }
@@ -59,7 +59,19 @@ class TreebeardButtonHelper(ButtonHelper):
                 self.get_action_url('create'), pk),
             'label': _('Add child'),
             'classname': self.default_button_classname + ' icon-plus',
-            'title': _('Add a new %s below this one') % self.model_name,
+            'title': _('Add a new %s as a child, beneath this one') % (
+                self.model_name),
+        }
+
+    def move_button(self, pk):
+        return {
+            'url': self.get_action_url('move', pk),
+            'label': _('Move'),
+            'classname': (
+                self.default_button_classname + ' icon-arrows-up-down'),
+            'title': _(
+                "Move this %s and it's descendants to a different part of "
+                "the tree") % self.model_name,
         }
 
     def get_buttons_for_obj(self, obj):
@@ -72,6 +84,7 @@ class TreebeardButtonHelper(ButtonHelper):
         buttons = []
         if self.permission_helper.can_edit_object(self.user, obj):
             buttons.append(self.edit_button(pk))
+            buttons.append(self.move_button(pk))
         if self.permission_helper.has_add_permission(self.user):
             if self.model.node_order_by:
                 buttons.append(self.add_child_button(pk))

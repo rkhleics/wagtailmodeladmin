@@ -1,6 +1,11 @@
 from django.shortcuts import get_object_or_404, redirect
+from django.utils.translation import ugettext as _
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from wagtail.wagtailadmin import messages
-from wagtailmodeladmin.views import CreateView
+from wagtailmodeladmin.views import (
+    CreateView, ObjectSpecificView, WMAFormView, permission_denied_response)
+from treebeard.forms import movenodeform_factory
 
 
 class TreebeardCreateView(CreateView):
@@ -73,3 +78,42 @@ class TreebeardCreateView(CreateView):
             buttons=self.get_success_message_buttons(instance)
         )
         return redirect(self.get_success_url())
+
+
+class TreebeardMoveView(ObjectSpecificView, WMAFormView):
+    page_title = _('Moving')
+
+    def check_action_permitted(self):
+        user = self.request.user
+        return self.permission_helper.can_edit_object(user, self.instance)
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        if not self.check_action_permitted():
+            return permission_denied_response(request)
+        return super(TreebeardMoveView, self).dispatch(request, *args,
+                                                       **kwargs)
+
+    def get_meta_title(self):
+        return _('Moving %s') % self.model_name.lower()
+
+    def get_page_subtitle(self):
+        return self.instance
+
+    def get_form_class(self):
+        return movenodeform_factory(self.model, fields=[])
+
+    def get_form_kwargs(self):
+        """
+        Returns the keyword arguments for instantiating the form.
+        """
+        kwargs = super(TreebeardMoveView, self).get_form_kwargs()
+        if hasattr(self, 'object'):
+            kwargs.update({'instance': self.get_instance()})
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        return {'view': self, 'form': self.get_form()}
+
+    def get_template_names(self):
+        return ('wagtailmodeladmin/recipes/treebeard/move.html', )
