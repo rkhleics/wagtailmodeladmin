@@ -28,7 +28,7 @@ class TreebeardButtonHelper(ButtonHelper):
             'url': '%s?sibling_id=%s&pos=right' % (
                 self.get_action_url('create'), pk),
             'label': _('Add after'),
-            'classname': self.default_button_classname + ' icon-plus',
+            'classname': self.default_button_classname,
             'title': _('Add a new %s after this one, at the same level') % (
                 self.model_name),
         }
@@ -38,7 +38,7 @@ class TreebeardButtonHelper(ButtonHelper):
             'url': '%s?sibling_id=%s&pos=left' % (
                 self.get_action_url('create'), pk),
             'label': _('Add before'),
-            'classname': self.default_button_classname + ' icon-plus',
+            'classname': self.default_button_classname,
             'title': _('Add a new %s before this one, at the same level') % (
                 self.model_name),
         }
@@ -48,7 +48,7 @@ class TreebeardButtonHelper(ButtonHelper):
             'url': '%s?sibling_id=%s' % (
                 self.get_action_url('create'), pk),
             'label': _('Add sibling'),
-            'classname': self.default_button_classname + ' icon-plus',
+            'classname': self.default_button_classname,
             'title': _('Add a new %s at the same level as this one') % (
                 self.model_name),
         }
@@ -58,7 +58,7 @@ class TreebeardButtonHelper(ButtonHelper):
             'url': '%s?parent_id=%s' % (
                 self.get_action_url('create'), pk),
             'label': _('Add child'),
-            'classname': self.default_button_classname + ' icon-plus',
+            'classname': self.default_button_classname,
             'title': _('Add a new %s as a child, beneath this one') % (
                 self.model_name),
         }
@@ -68,7 +68,7 @@ class TreebeardButtonHelper(ButtonHelper):
             'url': self.get_action_url('move', pk),
             'label': _('Move'),
             'classname': (
-                self.default_button_classname + ' icon-arrows-up-down'),
+                self.default_button_classname),
             'title': _(
                 "Move this %s and it's descendants to a different part of "
                 "the tree") % self.model_name,

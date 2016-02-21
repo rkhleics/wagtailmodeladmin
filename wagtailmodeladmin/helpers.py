@@ -173,7 +173,7 @@ def get_url_name(model_meta, action='index'):
 
 class ButtonHelper(object):
 
-    default_button_classname = 'button button-small bicolor icon'
+    default_button_classname = 'button button-small button-secondary'
 
     def __init__(self, model, permission_helper, user):
         self.user = user
@@ -200,7 +200,7 @@ class ButtonHelper(object):
         return {
             'url': self.get_action_url('edit', pk),
             'label': _('Edit'),
-            'classname': self.default_button_classname + ' icon-edit',
+            'classname': self.default_button_classname,
             'title': _('Edit this %s') % self.model_name,
         }
 
@@ -208,7 +208,7 @@ class ButtonHelper(object):
         return {
             'url': self.get_action_url('confirm_delete', pk),
             'label': _('Delete'),
-            'classname': self.default_button_classname + ' no icon-bin',
+            'classname': self.default_button_classname + ' no',
             'title': _('Delete this %s') % self.model_name,
         }
 
@@ -229,7 +229,7 @@ class PageButtonHelper(ButtonHelper):
         return {
             'url': self.get_action_url('unpublish', pk),
             'label': _('Unpublish'),
-            'classname': self.default_button_classname + ' icon-cog',
+            'classname': self.default_button_classname,
             'title': _('Unpublish this %s') % self.model_name,
         }
 
@@ -237,7 +237,7 @@ class PageButtonHelper(ButtonHelper):
         return {
             'url': self.get_action_url('copy', pk),
             'label': _('Copy'),
-            'classname': self.default_button_classname + ' icon-plus-inverse',
+            'classname': self.default_button_classname,
             'title': _('Copy this %s') % self.model_name,
         }
 
