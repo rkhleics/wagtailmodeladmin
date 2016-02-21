@@ -199,6 +199,26 @@ class ModelAdmin(WagtailRegisterable):
     def get_create_url(self):
         return reverse(get_url_name(self.opts, 'create'))
 
+    def get_extra_class_names_for_field_col(self, obj, field_name):
+        """
+        Return a list of additional CSS class names to be added to the table
+        cell's `class` attribute when rendering the output of `field_name` for
+        `obj` in `index_view`.
+
+        Must always return a list or tuple.
+        """
+        return []
+
+    def get_extra_attrs_for_field_col(self, obj, field_name):
+        """
+        Return a dictionary of additional HTML attributes to be added to a
+        table cell when rendering the output of `field_name` for `obj` in
+        `index_view`.
+
+        Must always return a dictionary.
+        """
+        return {}
+
     def index_view(self, request):
         """
         Instantiates a class-based view to provide listing functionality for
