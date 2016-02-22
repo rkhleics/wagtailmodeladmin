@@ -106,3 +106,6 @@ class TreebeardMoveView(ObjectSpecificView, WMAFormView):
 
     def get_context_data(self, **kwargs):
         return {'view': self, 'form': self.get_form()}
+
+    def get_template_names(self):
+        return self.model_admin.get_templates('move')
