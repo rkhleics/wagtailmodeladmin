@@ -49,14 +49,6 @@ class TreebeardCreateView(CreateView):
         })
         return context
 
-    def get_template_names(self):
-        """
-        Render to a custom template, so that we can introduce hidden fields
-        to the form without having to dig into customising edit_handler
-        classes.
-        """
-        return ('wagtailmodeladmin/recipes/treebeard/create.html', )
-
     def form_valid(self, form):
         """
         Override what happens when the form is saved. Instead of straight-up
@@ -114,6 +106,3 @@ class TreebeardMoveView(ObjectSpecificView, WMAFormView):
 
     def get_context_data(self, **kwargs):
         return {'view': self, 'form': self.get_form()}
-
-    def get_template_names(self):
-        return ('wagtailmodeladmin/recipes/treebeard/move.html', )

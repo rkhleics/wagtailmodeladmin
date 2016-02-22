@@ -26,3 +26,12 @@ class TreebeardModelAdmin(ModelAdmin):
                 self.move_view, name=get_url_name(self.opts, 'move'))
         )
         return urls
+
+    def get_templates(self, action='index'):
+        app = self.opts.app_label
+        model_name = self.opts.model_name
+        return [
+            'wagtailmodeladmin/%s/%s/%s.html' % (app, model_name, action),
+            'wagtailmodeladmin/recipes/treebeard/%s.html' % (action,),
+            'wagtailmodeladmin/%s.html' % (action,),
+        ]
