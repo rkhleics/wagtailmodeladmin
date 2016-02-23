@@ -59,6 +59,7 @@ class ModelAdmin(WagtailRegisterable):
     menu_icon = None
     menu_order = None
     list_display = ('__str__',)
+    list_display_add_buttons = None
     empty_value_display = '-'
     list_filter = ()
     list_select_related = False
@@ -151,6 +152,13 @@ class ModelAdmin(WagtailRegisterable):
         in the list view.
         """
         return self.list_display
+
+    def get_list_display_add_buttons(self, request):
+        """
+        Return the name of the field/method from list_display where action
+        buttons should be added.
+        """
+        return self.list_display_add_buttons or self.list_display[0]
 
     def get_empty_value_display(self):
         """

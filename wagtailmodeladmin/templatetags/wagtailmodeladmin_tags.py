@@ -154,7 +154,10 @@ def result_row_value_display(context, index=0):
     add_action_buttons = False
     item = context['item']
     closing_tag = mark_safe(item[-5:])
-    if index == 0:
+    request = context['request']
+    modeladmin = context['view'].model_admin
+    field_name = modeladmin.get_list_display(request)[index]
+    if field_name == modeladmin.get_list_display_add_buttons(request):
         add_action_buttons = True
         item = mark_safe(item[0:-5])
     context.update({
