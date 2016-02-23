@@ -4,6 +4,7 @@ from django.contrib.auth.models import Permission
 from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.translation import ugettext_lazy as _
 from django.utils.safestring import mark_safe
 
 from wagtail.wagtailcore.models import Page
@@ -43,6 +44,41 @@ class WagtailRegisterable(object):
         @hooks.register(menu_hook)
         def register_admin_menu_item():
             return self.get_menu_item()
+
+
+class AdminThumbMixin(object):
+    """
+    Mixin class to help display thumbnail images in ModelAdmin listing results.
+    `thumb_image_field` must be overridden to name a ForeignKey field on your
+    model linking to the `wagtailimages.Image`.
+
+    Add `admin_thumb` to `list_display` to output the thumbnail in results.
+    """
+    thumb_image_field_name = 'image'
+    thumb_column_header = _('image')
+    thumb_image_filter_spec = 'fill-90x90'
+    thumb_image_width = 45
+    thumb_classname = 'admin-thumb'
+
+    def admin_thumb(self, obj):
+        try:
+            image = getattr(obj, self.thumb_image_field_name, None)
+        except AttributeError:
+            raise ImproperlyConfigured(
+                u"The `thumb_image_field_name` attribute on your `%s` class "
+                "must name a field on your model." % self.__class__.__name__
+            )
+        if image:
+            from wagtail.wagtailimages.models import Filter
+            fltr, _ = Filter.objects.get_or_create(
+                spec=self.thumb_image_filter_spec)
+            return image.get_rendition(fltr).img_tag({
+                'width': self.thumb_image_width,
+                'height': 'auto',
+                'class': self.thumb_classname
+            })
+        return ''
+    admin_thumb.short_description = thumb_column_header
 
 
 class ModelAdmin(WagtailRegisterable):
