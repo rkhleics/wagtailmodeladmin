@@ -21,7 +21,7 @@
             <div class="col">
                 <h1 {% if view.header_icon %}class="icon icon-{{ view.header_icon }}"{% endif %}>{{ view.get_page_title }}<span></span></h1>
             </div>
-            {% block search %}{% search_form view %}{% endblock %}
+            {% block search %}{% search_form %}{% endblock %}
         </div>
         {% if has_add_permission and view.button_helper.add_button %}
         <div class="right">
@@ -65,7 +65,7 @@
                     {% endif %}
                 </div>
             {% else %}
-                {% result_list view object_list %}
+                {% result_list %}
             {% endif %}
         {% endblock %}
     </div>
