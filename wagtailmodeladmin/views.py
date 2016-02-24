@@ -230,6 +230,8 @@ class ObjectSpecificView(WMABaseView):
 
 class IndexView(WMABaseView):
 
+    flf_class = FieldListFilter
+
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         self.list_display = self.model_admin.get_list_display(request)
@@ -383,7 +385,7 @@ class IndexView(WMABaseView):
                         # FieldListFilter class that has been registered for
                         # the type of the given field.
                         field = list_filter
-                        field_list_filter_class = FieldListFilter.create
+                        field_list_filter_class = self.flf_class.create
                     if not isinstance(field, models.Field):
                         field_path = field
                         field = get_fields_from_path(self.model,
