@@ -113,6 +113,8 @@ class ModelAdmin(WagtailRegisterable):
     index_template_name = ''
     create_template_name = ''
     edit_template_name = ''
+    index_view_extra_css = []
+    index_view_extra_js = []
     confirm_delete_template_name = ''
     choose_parent_template_name = ''
     permission_helper_class = None
@@ -262,6 +264,12 @@ class ModelAdmin(WagtailRegisterable):
         Must always return a dictionary.
         """
         return {}
+
+    def get_index_view_extra_css(self, request):
+        return self.index_view_extra_css
+
+    def get_index_view_extra_js(self, request):
+        return self.index_view_extra_js
 
     def index_view(self, request):
         """

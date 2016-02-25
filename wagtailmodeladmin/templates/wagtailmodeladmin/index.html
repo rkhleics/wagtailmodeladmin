@@ -6,12 +6,12 @@
 {% block css %}
     {{ block.super }}
     {% compress css %}
-        <link rel="stylesheet" href="{% static 'wagtailmodeladmin/css/index.css' %}" type="text/css"/>
+        {{ view.media.css }}
     {% endcompress %}
 {% endblock %}
 
 {% block extra_js %}
-    {{ media.js }}
+    {{ view.media.js }}
 {% endblock %}
 
 {% block content %}

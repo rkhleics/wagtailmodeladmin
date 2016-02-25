@@ -4,6 +4,7 @@ from collections import OrderedDict
 from functools import reduce
 
 from django.db import models
+from django import forms
 from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.constants import QUERY_TERMS
@@ -260,6 +261,13 @@ class IndexView(WMABaseView):
             return permission_denied_response(request)
 
         return super(IndexView, self).dispatch(request, *args, **kwargs)
+
+    @property
+    def media(self):
+        css = self.model_admin.get_index_view_extra_css(self.request)
+        css.append('wagtailmodeladmin/css/index.css')
+        js = self.model_admin.get_index_view_extra_js(self.request)
+        return forms.Media(css={'all': css}, js=js)
 
     def get_search_results(self, request, queryset, search_term):
         """
