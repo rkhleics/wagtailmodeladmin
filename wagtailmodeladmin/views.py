@@ -264,10 +264,10 @@ class IndexView(WMABaseView):
 
     @property
     def media(self):
-        css = self.model_admin.get_index_view_extra_css(self.request)
-        css.append('wagtailmodeladmin/css/index.css')
-        js = self.model_admin.get_index_view_extra_js(self.request)
-        return forms.Media(css={'all': css}, js=js)
+        return forms.Media(
+            css={'all': self.model_admin.get_index_view_extra_css()},
+            js=self.model_admin.get_index_view_extra_js()
+        )
 
     def get_search_results(self, request, queryset, search_term):
         """
