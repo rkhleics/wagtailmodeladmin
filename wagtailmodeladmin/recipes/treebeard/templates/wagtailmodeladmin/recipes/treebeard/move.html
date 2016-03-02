@@ -1,7 +1,17 @@
 {% extends "wagtailadmin/base.html" %}
-{% load i18n wagtailadmin_tags compress admin_urls admin_static wagtailmodeladmin_tags %}
+{% load i18n %}
 
 {% block titletag %}{{ view.get_meta_title }}{% endblock %}
+
+{% block extra_css %}
+    {% include "wagtailadmin/pages/_editor_css.html" %}
+    {{ view.media.css }}
+{% endblock %}
+
+{% block extra_js %}
+    {% include "wagtailadmin/pages/_editor_js.html" %}
+    {{ view.media.js }}
+{% endblock %}
 
 {% block content %}
 <div id="content-main">
@@ -26,14 +36,4 @@
 
     </div>
 </div>
-{% endblock %}
-
-{% block extra_css %}
-    {% include "wagtailadmin/pages/_editor_css.html" %}
-    {% compress css %}
-        <link rel="stylesheet" href="{% static 'wagtailmodeladmin/css/choose_parent_page.css' %}" type="text/css"/>
-    {% endcompress %}
-{% endblock %}
-{% block extra_js %}
-    {% include "wagtailadmin/pages/_editor_js.html" %}
 {% endblock %}
