@@ -5,7 +5,6 @@ from django.utils.decorators import method_decorator
 from wagtail.wagtailadmin import messages
 from wagtailmodeladmin.views import (
     CreateView, ObjectSpecificView, WMAFormView, permission_denied_response)
-
 from treebeard.forms import movenodeform_factory
 from .forms import MoveForm, NoIndentationMoveForm
 
