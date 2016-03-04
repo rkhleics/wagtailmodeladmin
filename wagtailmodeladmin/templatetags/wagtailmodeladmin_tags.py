@@ -175,3 +175,14 @@ def result_row_value_display(context, index=0):
         'closing_tag': closing_tag,
     })
     return context
+
+
+@register.filter
+def get_content_type_for_obj(obj):
+    """
+    Return the model name/"content type" as a string
+    e.g BlogPage, NewsListingPage.
+    Can be used with "slugify" to create CSS-friendly classnames
+    Usage: {{ self|content_type|slugify }}
+    """
+    return obj.__class__._meta.verbose_name

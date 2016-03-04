@@ -1,16 +1,24 @@
 {% extends "wagtailadmin/base.html" %}
-{% load i18n %}
+{% load i18n wagtailmodeladmin_tags %}
 
 {% block titletag %}{{ view.get_meta_title }}{% endblock %}
 
 {% block content %}
     {% include "wagtailadmin/shared/header.html" with title=view.get_page_title subtitle=view.get_page_subtitle icon=view.header_icon %}
 
-    <div class="nice-padding">
-        <p>{{ view.confirmation_message }}</p>
-        <form action="{{ view.get_delete_url }}" method="POST">
-            {% csrf_token %}
-            <input type="submit" value="{% trans 'Yes, delete' %}" class="serious" />
-        </form>
+    <div class="nice-padding">	
+    	{% if error_protected %}
+    		<h2>{% blocktrans with instance as instance_name %}Sorry, there was a problem{% endblocktrans %}</h2>
+    		<p>{% blocktrans with view.model_name|lower as model_name and instance as instance_name %}{{ instance_name }} cannot be deleted currently, because it has protected relationships with other objects. To delete this {{ model_name }}, address it's relationships with the following items, then try again:{% endblocktrans %}</p>
+    		<ul>
+    			{% for obj in linked_objects %}<li><b>{{ obj|get_content_type_for_obj|title }}:</b> {{ obj }}</li>{% endfor %}
+    		</ul>
+    	{% else %}
+	        <p>{{ view.confirmation_message }}</p>
+	        <form action="{{ view.get_delete_url }}" method="POST">
+	            {% csrf_token %}
+	            <input type="submit" value="{% trans 'Yes, delete' %}" class="serious" />
+	        </form>
+	    {% endif %}
     </div>
 {% endblock %}
