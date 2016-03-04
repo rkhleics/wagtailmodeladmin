@@ -9,10 +9,11 @@
     <div class="nice-padding">	
     	{% if error_protected %}
     		<h2>{% blocktrans with instance as instance_name %}Sorry, there was a problem{% endblocktrans %}</h2>
-    		<p>{% blocktrans with view.model_name|lower as model_name and instance as instance_name %}{{ instance_name }} cannot be deleted currently, because it has protected relationships with other objects. To delete this {{ model_name }}, address it's relationships with the following items, then try again:{% endblocktrans %}</p>
+    		<p>{% blocktrans with view.model_name|lower as model_name and instance as instance_name %}{{ instance_name }} cannot be deleted because it currently has protected relationships with other objects. To delete {{ model_name }}, address it's relationships with the following items, then try again:{% endblocktrans %}</p>
     		<ul>
     			{% for obj in linked_objects %}<li><b>{{ obj|get_content_type_for_obj|title }}:</b> {{ obj }}</li>{% endfor %}
     		</ul>
+    		<p><a href="{{ view.get_index_url }}" class="button">{% blocktrans with view.model_name|lower as model_name %}Okay, go back{% endblocktrans %}</a></p>
     	{% else %}
 	        <p>{{ view.confirmation_message }}</p>
 	        <form action="{{ view.get_delete_url }}" method="POST">

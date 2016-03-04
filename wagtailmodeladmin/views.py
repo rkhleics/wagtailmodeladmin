@@ -838,7 +838,8 @@ class ConfirmDeleteView(ObjectSpecificView):
                 linked_objects = []
                 for rel in self.model._meta.get_all_related_objects():
                     if rel.on_delete == models.PROTECT:
-                        for obj in getattr(instance, rel.get_accessor_name()).all():
+                        qs = getattr(instance, rel.get_accessor_name())
+                        for obj in qs.all():
                             linked_objects.append(obj)
 
                 context = {
