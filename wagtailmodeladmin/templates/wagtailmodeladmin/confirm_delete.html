@@ -13,7 +13,7 @@
     		<ul>
     			{% for obj in linked_objects %}<li><b>{{ obj|get_content_type_for_obj|title }}:</b> {{ obj }}</li>{% endfor %}
     		</ul>
-    		<p><a href="{{ view.get_index_url }}" class="button">{% blocktrans with view.model_name|lower as model_name %}Okay, go back{% endblocktrans %}</a></p>
+    		<p><a href="{{ view.get_index_url }}" class="button">{% trans 'Okay, go back' %}</a></p>
     	{% else %}
 	        <p>{{ view.confirmation_message }}</p>
 	        <form action="{{ view.get_delete_url }}" method="POST">
