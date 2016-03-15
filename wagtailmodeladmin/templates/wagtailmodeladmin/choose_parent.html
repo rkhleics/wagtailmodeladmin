@@ -1,13 +1,27 @@
 {% extends "wagtailadmin/base.html" %}
-{% load i18n compress admin_urls admin_static wagtailmodeladmin_tags %}
-
+{% load i18n compress admin_static %}
 
 {% block titletag %}{{ view.get_meta_title }}{% endblock %}
+
+{% block extra_css %}
+    {% include "wagtailadmin/pages/_editor_css.html" %}
+    {% compress css %}
+        <link rel="stylesheet" href="{% static 'wagtailmodeladmin/css/choose_parent_page.css' %}" type="text/css"/>
+    {% endcompress %}
+{% endblock %}
+
+{% block extra_js %}
+    {% include "wagtailadmin/pages/_editor_js.html" %}
+{% endblock %}
+
 
 {% block content %}
 <div id="content-main">
 
-    {% include "wagtailadmin/shared/header.html" with title=view.get_page_title subtitle=view.get_page_subtitle icon=view.header_icon %}
+    {% block header %}
+        {% include "wagtailmodeladmin/includes/breadcrumb.html" %}
+        {% include "wagtailadmin/shared/header.html" with title=view.get_page_title subtitle=view.get_page_subtitle icon=view.header_icon %}
+    {% endblock %}
 
     <div class="nice-padding">
         <h2>{% blocktrans %}Where should it go?{% endblocktrans %}</h2>
@@ -28,12 +42,3 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-    {% include "wagtailadmin/pages/_editor_css.html" %}
-    {% compress css %}
-        <link rel="stylesheet" href="{% static 'wagtailmodeladmin/css/choose_parent_page.css' %}" type="text/css"/>
-    {% endcompress %}
-{% endblock %}
-{% block extra_js %}
-    {% include "wagtailadmin/pages/_editor_js.html" %}
-{% endblock %}
