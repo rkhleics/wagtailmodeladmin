@@ -18,8 +18,8 @@ from .helpers import (
     PermissionHelper, PagePermissionHelper, ButtonHelper, PageButtonHelper,
     get_url_pattern, get_object_specific_url_pattern, get_url_name)
 from .views import (
-    IndexView, CreateView, ChooseParentView, EditView, ConfirmDeleteView,
-    CopyRedirectView, UnpublishRedirectView)
+    IndexView, InspectView, CreateView, ChooseParentView, EditView,
+    ConfirmDeleteView, CopyRedirectView, UnpublishRedirectView)
 
 
 class WagtailRegisterable(object):
@@ -102,6 +102,8 @@ class ModelAdmin(WagtailRegisterable):
     menu_order = None
     list_display = ('__str__',)
     list_display_add_buttons = None
+    inspect_view_fields = None
+    inspect_view_enabled = False
     empty_value_display = '-'
     list_filter = ()
     list_select_related = False
@@ -111,6 +113,7 @@ class ModelAdmin(WagtailRegisterable):
     parent = None
     index_view_class = IndexView
     create_view_class = CreateView
+    inspect_view_class = InspectView
     edit_view_class = EditView
     confirm_delete_view_class = ConfirmDeleteView
     choose_parent_view_class = ChooseParentView
@@ -119,12 +122,15 @@ class ModelAdmin(WagtailRegisterable):
     index_template_name = ''
     create_template_name = ''
     edit_template_name = ''
+    inspect_template_name = ''
     confirm_delete_template_name = ''
     choose_parent_template_name = ''
     permission_helper_class = None
     button_helper_class = None
     index_view_extra_css = []
     index_view_extra_js = []
+    inspect_view_extra_css = []
+    inspect_view_extra_js = []
     form_view_extra_css = []
     form_view_extra_js = []
 
@@ -253,6 +259,17 @@ class ModelAdmin(WagtailRegisterable):
     def get_create_url(self):
         return reverse(get_url_name(self.opts, 'create'))
 
+    def get_inspect_view_fields(self):
+        if not self.inspect_view_fields:
+            found_fields = []
+            for f in self.model._meta.get_fields():
+                if f.concrete and (
+                    not f.is_relation or (f.many_to_one and f.related_model)
+                ):
+                    found_fields.append(f.name)
+            return found_fields
+        return self.inspect_view_fields
+
     def get_extra_class_names_for_field_col(self, obj, field_name):
         """
         Return a list of additional CSS class names to be added to the table
@@ -287,6 +304,12 @@ class ModelAdmin(WagtailRegisterable):
     def get_form_view_extra_js(self):
         return self.form_view_extra_js
 
+    def get_inspect_view_extra_css(self):
+        return self.inspect_view_extra_css
+
+    def get_inspect_view_extra_js(self):
+        return self.inspect_view_extra_js
+
     def index_view(self, request):
         """
         Instantiates a class-based view to provide listing functionality for
@@ -306,6 +329,11 @@ class ModelAdmin(WagtailRegisterable):
         """
         kwargs = {'model_admin': self}
         view_class = self.create_view_class
+        return view_class.as_view(**kwargs)(request)
+
+    def inspect_view(self, request, object_id):
+        kwargs = {'model_admin': self, 'object_id': object_id}
+        view_class = self.inspect_view_class
         return view_class.as_view(**kwargs)(request)
 
     def choose_parent_view(self, request):
@@ -393,13 +421,21 @@ class ModelAdmin(WagtailRegisterable):
         """
         return self.index_template_name or self.get_templates('index')
 
+    def get_inspect_template(self):
+        """
+        Returns a template to be used when rendering 'inspect_view'. If a
+        template is specified by the 'inspect_template_name' attribute, that
+        will be used. Otherwise, a list of preferred template names are
+        returned.
+        """
+        return self.inspect_template_name or self.get_templates('inspect')
+
     def get_choose_parent_template(self):
         """
         Returns a template to be used when rendering 'choose_parent_view'. If a
         template is specified by the 'choose_parent_template_name' attribute,
         that will be used. Otherwise, a list of preferred template names are
-        returned, allowing custom templates to be used by simply putting them
-        in a sensible location in an app's template directory.
+        returned.
         """
         return self.choose_parent_template_name or self.get_templates(
             'choose_parent')
@@ -408,9 +444,8 @@ class ModelAdmin(WagtailRegisterable):
         """
         Returns a template to be used when rendering 'create_view'. If a
         template is specified by the 'create_template_name' attribute,
-        that will be used. Otherwise, a list of preferred template names is
-        returned, allowing custom templates to be used by simply putting them
-        in a sensible location in an app's template directory.
+        that will be used. Otherwise, a list of preferred template names are
+        returned.
         """
         return self.create_template_name or self.get_templates('create')
 
@@ -418,9 +453,7 @@ class ModelAdmin(WagtailRegisterable):
         """
         Returns a template to be used when rendering 'edit_view'. If a template
         is specified by the 'edit_template_name' attribute, that will be used.
-        Otherwise, a list of preferred template names is returned, allowing
-        custom templates to be used by simply putting them in a sensible
-        location in an app's template directory.
+        Otherwise, a list of preferred template names are returned.
         """
         return self.edit_template_name or self.get_templates('edit')
 
@@ -429,8 +462,7 @@ class ModelAdmin(WagtailRegisterable):
         Returns a template to be used when rendering 'confirm_delete_view'. If
         a template is specified by the 'confirm_delete_template_name'
         attribute, that will be used. Otherwise, a list of preferred template
-        names is returned, allowing custom templates to be used by simply
-        putting them in a sensible location in an app's template directory.
+        names are returned.
         """
         return self.confirm_delete_template_name or self.get_templates(
             'confirm_delete')
@@ -462,35 +494,36 @@ class ModelAdmin(WagtailRegisterable):
         Utilised by Wagtail's 'register_admin_urls' hook to register urls for
         our the views that class offers.
         """
-        return [
+        urls = (
             url(get_url_pattern(self.opts),
-                self.index_view,
-                name=get_url_name(self.opts)),
-
+                self.index_view, name=get_url_name(self.opts)),
             url(get_url_pattern(self.opts, 'create'),
-                self.create_view,
-                name=get_url_name(self.opts, 'create')),
-
-            url(get_url_pattern(self.opts, 'choose_parent'),
-                self.choose_parent_view,
-                name=get_url_name(self.opts, 'choose_parent')),
-
+                self.create_view, name=get_url_name(self.opts, 'create')),
             url(get_object_specific_url_pattern(self.opts, 'edit'),
-                self.edit_view,
-                name=get_url_name(self.opts, 'edit')),
-
+                self.edit_view, name=get_url_name(self.opts, 'edit')),
             url(get_object_specific_url_pattern(self.opts, 'confirm_delete'),
                 self.confirm_delete_view,
                 name=get_url_name(self.opts, 'confirm_delete')),
-
-            url(get_object_specific_url_pattern(self.opts, 'unpublish'),
-                self.unpublish_view,
-                name=get_url_name(self.opts, 'unpublish')),
-
-            url(get_object_specific_url_pattern(self.opts, 'copy'),
-                self.copy_view,
-                name=get_url_name(self.opts, 'copy')),
-        ]
+        )
+        if self.inspect_view_enabled:
+            urls = urls + (
+                url(get_object_specific_url_pattern(self.opts, 'inspect'),
+                    self.inspect_view,
+                    name=get_url_name(self.opts, 'inspect')),
+            )
+        if self.is_pagemodel:
+            urls = urls + (
+                url(get_url_pattern(self.opts, 'choose_parent'),
+                    self.choose_parent_view,
+                    name=get_url_name(self.opts, 'choose_parent')),
+                url(get_object_specific_url_pattern(self.opts, 'unpublish'),
+                    self.unpublish_view,
+                    name=get_url_name(self.opts, 'unpublish')),
+                url(get_object_specific_url_pattern(self.opts, 'copy'),
+                    self.copy_view,
+                    name=get_url_name(self.opts, 'copy')),
+            )
+        return urls
 
         def construct_main_menu(self, request, menu_items):
             warnings.warn((
