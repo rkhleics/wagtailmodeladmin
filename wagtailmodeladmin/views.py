@@ -722,7 +722,7 @@ class InspectView(ObjectSpecificView):
     def get_value_for_image_field(self, field_name):
         image = getattr(self.instance, field_name)
         if image:
-            fltr, _ = Filter.objects.get_or_create(spec='fill-400x400')
+            fltr, _ = Filter.objects.get_or_create(spec='max-400x400')
             rendition = image.get_rendition(fltr)
             return rendition.img_tag
         return _('Not set')
@@ -778,6 +778,8 @@ class InspectView(ObjectSpecificView):
             'view': self,
             'fields': fields,
             'instance': self.instance,
+            'buttons': self.button_helper.get_inspect_view_buttons(
+                self.instance),
         }
 
     def get_template_names(self):
@@ -870,7 +872,7 @@ class EditView(ObjectSpecificView, CreateView):
     def get_meta_title(self):
         return _('Editing %s') % self.model_name.lower()
 
-    def page_subtitle(self):
+    def get_page_subtitle(self):
         return self.instance
 
     def get_success_message(self, instance):

@@ -15,13 +15,15 @@
     <div id="content-main">
 
         {% block header %}
+            <ul class="breadcrumb">
+                <li class="home"><a href="{% url 'wagtailadmin_home' %}" class="icon icon-home text-replace">{% trans 'Home' %}</a></li>
+                <li><a href="{{ view.get_index_url }}">{{ view.model_name_plural }}</a></li>
+            </ul>
             {% include "wagtailadmin/shared/header.html" with title=view.get_page_title subtitle=view.get_page_subtitle icon=view.header_icon %}
         {% endblock %}
 
         {% block content_main %}
             <div class="nice-padding">
-
-                <p class="back"><a href="{{ view.get_index_url }}" class="icon icon-arrow-left">{% blocktrans with view.model_name|lower as model_name %}Back to {{ model_name }} list{% endblocktrans %}</a></p>
                 
                 {% block fields_output %}
                     {% if fields %}
@@ -37,4 +39,17 @@
             </div>
         {% endblock %}
     </div>
+
+    {% block footer %}
+        {% if buttons %}
+            <footer>
+                <div class="button-group">
+                    {% for button in buttons %}
+                        {% include "wagtailmodeladmin/includes/button.html" %}
+                    {% endfor %}
+                </div>
+            </footer>
+        {% endif %}
+    {% endblock %}
+
 {% endblock %}
