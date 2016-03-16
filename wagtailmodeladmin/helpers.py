@@ -1,4 +1,3 @@
-from copy import copy
 from django.contrib.auth import get_permission_codename
 from django.utils.translation import ugettext as _
 from django.utils.encoding import force_text
@@ -227,8 +226,8 @@ class ButtonHelper(object):
         }
 
     def delete_button(self, pk, extra_classnames=[]):
-        classnames = copy(extra_classnames)
-        classnames.append('no')
+        unique_classnames = ['no']
+        classnames = unique_classnames + extra_classnames
         return {
             'url': self.get_action_url('confirm_delete', pk),
             'label': _('Delete'),
