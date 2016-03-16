@@ -748,7 +748,12 @@ class InspectView(ObjectSpecificView):
         try:
             field = self.model._meta.get_field(field_name)
             label = getattr(field, 'verbose_name', None)
-            value = getattr(self.instance, field_name, None)
+            value_funct = getattr(self.instance, 'get_%s_display' % field_name,
+                                  None)
+            if value_funct is not None:
+                value = value_funct()
+            else:
+                value = getattr(self.instance, field_name, None)
             if label is None:
                 label = field.name
             try:
@@ -782,7 +787,7 @@ class InspectView(ObjectSpecificView):
             'view': self,
             'fields': fields,
             'instance': self.instance,
-            'buttons': self.button_helper.get_inspect_view_buttons(
+            'buttons': self.button_helper.get_buttons_for_inspect_view(
                 self.instance),
         }
 

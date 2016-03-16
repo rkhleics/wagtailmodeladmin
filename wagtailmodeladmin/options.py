@@ -103,6 +103,7 @@ class ModelAdmin(WagtailRegisterable):
     list_display = ('__str__',)
     list_display_add_buttons = None
     inspect_view_fields = None
+    inspect_view_fields_exclude = []
     inspect_view_enabled = False
     empty_value_display = '-'
     list_filter = ()
@@ -263,10 +264,12 @@ class ModelAdmin(WagtailRegisterable):
         if not self.inspect_view_fields:
             found_fields = []
             for f in self.model._meta.get_fields():
-                if f.concrete and (
-                    not f.is_relation or (f.many_to_one and f.related_model)
-                ):
-                    found_fields.append(f.name)
+                if f.name not in self.inspect_view_fields_exclude:
+                    if f.concrete and (
+                        not f.is_relation or
+                        (not f.auto_created and f.related_model)
+                    ):
+                        found_fields.append(f.name)
             return found_fields
         return self.inspect_view_fields
 
