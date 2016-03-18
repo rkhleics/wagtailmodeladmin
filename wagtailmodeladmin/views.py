@@ -37,6 +37,7 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import FormView
 
 from wagtail.wagtailadmin import messages
+from wagtail.wagtailsnippets.views.snippets import get_snippet_edit_handler
 from wagtail.wagtailimages.models import get_image_model, Filter
 try:
     from wagtail.wagtaildocs.models import get_document_model
@@ -44,8 +45,6 @@ try:
 except ImportError:
     from wagtail.wagtaildocs.models import Document
 from wagtail.wagtailcore import __version__ as wagtail_version
-from wagtail.wagtailadmin.edit_handlers import (
-    ObjectList, extract_panel_definitions_from_model_class)
 
 from .helpers import get_url_name
 from .forms import ParentChooserForm
@@ -154,24 +153,6 @@ class WMABaseView(TemplateView):
 
 class WMAFormView(WMABaseView, FormView):
 
-    def get_edit_handler_class(self):
-        panels = extract_panel_definitions_from_model_class(self.model)
-        return ObjectList(panels).bind_to_model(self.model)
-
-    def get_form_class(self):
-        return self.get_edit_handler_class().get_form_class(self.model)
-
-    def get_success_url(self):
-        return self.get_index_url
-
-    def get_instance(self):
-        return getattr(self, 'instance', None) or self.model()
-
-    def get_form_kwargs(self):
-        kwargs = FormView.get_form_kwargs(self)
-        kwargs.update({'instance': self.get_instance()})
-        return kwargs
-
     @property
     def media(self):
         return forms.Media(
@@ -179,15 +160,32 @@ class WMAFormView(WMABaseView, FormView):
             js=self.model_admin.get_form_view_extra_js()
         )
 
+    def get_instance(self):
+        return getattr(self, 'instance', None) or self.model()
+
+    def get_edit_handler(self):
+        return get_snippet_edit_handler(self.model)
+
+    def get_form_class(self):
+        return self.get_edit_handler().get_form_class(self.model)
+
+    def get_form_kwargs(self):
+        kwargs = FormView.get_form_kwargs(self)
+        kwargs.update({'instance': self.get_instance()})
+        return kwargs
+
     def get_context_data(self, **kwargs):
         instance = self.get_instance()
-        edit_handler_class = self.get_edit_handler_class()
         form = self.get_form()
+        edit_handler = self.get_edit_handler()(instance=instance, form=form)
         return {
             'view': self,
             'is_multipart': form.is_multipart(),
-            'edit_handler': edit_handler_class(instance=instance, form=form)
+            'edit_handler': edit_handler,
         }
+
+    def get_success_url(self):
+        return self.get_index_url
 
     def get_success_message(self, instance):
         return _("{model_name} '{instance}' created.").format(
