@@ -4,7 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from wagtail.wagtailadmin import messages
 from wagtailmodeladmin.views import (
-    CreateView, ObjectSpecificView, WMAFormView, permission_denied_response)
+    CreateView, ObjectSpecificView, WMAFormView, ConfirmDeleteView,
+    permission_denied_response)
 from treebeard.forms import movenodeform_factory
 from .forms import MoveForm, NoIndentationMoveForm
 
@@ -114,3 +115,9 @@ class TreebeardMoveView(ObjectSpecificView, WMAFormView):
 
     def get_template_names(self):
         return self.model_admin.get_templates('move')
+
+
+class TreebeardConfirmDeleteView(ConfirmDeleteView):
+
+    def delete_instance(self):
+        self.model.objects.get(id=self.instance.id).delete()

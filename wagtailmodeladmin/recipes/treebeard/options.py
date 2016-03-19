@@ -3,7 +3,8 @@ from wagtailmodeladmin.options import ModelAdmin
 from wagtailmodeladmin.helpers import (
     get_object_specific_url_pattern, get_url_name)
 from .helpers import TreebeardPermissionHelper, TreebeardButtonHelper
-from .views import TreebeardCreateView, TreebeardMoveView
+from .views import (
+    TreebeardCreateView, TreebeardMoveView, TreebeardConfirmDeleteView)
 
 
 class TreebeardModelAdmin(ModelAdmin):
@@ -12,6 +13,7 @@ class TreebeardModelAdmin(ModelAdmin):
     extend Treebeard's `MP_Node` model.
     """
     create_view_class = TreebeardCreateView
+    confirm_delete_view_class = TreebeardConfirmDeleteView
     permission_helper_class = TreebeardPermissionHelper
     button_helper_class = TreebeardButtonHelper
     move_form_select_indentation = True
