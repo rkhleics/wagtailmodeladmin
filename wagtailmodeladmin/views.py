@@ -170,7 +170,7 @@ class WMAFormView(WMABaseView, FormView):
         else:
             panels = extract_panel_definitions_from_model_class(self.model)
             edit_handler = ObjectList(panels)
-        return edit_handler.bind_to_model(self.instance)
+        return edit_handler.bind_to_model(self.model)
 
     def get_form_class(self):
         return self.get_edit_handler().get_form_class(self.model)
