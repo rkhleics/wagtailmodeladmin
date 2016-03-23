@@ -278,7 +278,7 @@ class IndexView(WMABaseView):
         self.query = request.GET.get(SEARCH_VAR, '')
         self.queryset = self.get_queryset(request)
 
-        if not self.permission_helper.allow_list_view(request.user):
+        if not self.permission_helper.has_list_permission(request.user):
             return permission_denied_response(request)
 
         return super(IndexView, self).dispatch(request, *args, **kwargs)
@@ -289,6 +289,10 @@ class IndexView(WMABaseView):
             css={'all': self.model_admin.get_index_view_extra_css()},
             js=self.model_admin.get_index_view_extra_js()
         )
+
+    def get_buttons_for_obj(self, obj):
+        return self.button_helper.get_buttons_for_obj(
+            obj, classnames_add=['button-small', 'button-secondary'])
 
     def get_search_results(self, request, queryset, search_term):
         """
@@ -826,17 +830,13 @@ class InspectView(ObjectSpecificView):
             fields.append(self.get_dict_for_field(field_name))
         return fields
 
-    def get_buttons(self):
-        """
-        Return a list of buttons to display in the footer
-        """
-        return self.button_helper.get_buttons_for_inspect_view(self.instance)
-
     def get_context_data(self, **kwargs):
+        buttons = self.button_helper.get_buttons_for_obj(
+            self.instance, exclude=['inspect'])
         return {
             'view': self,
             'fields': self.get_fields_dict(),
-            'buttons': self.get_buttons(),
+            'buttons': buttons,
             'instance': self.instance,
         }
 
