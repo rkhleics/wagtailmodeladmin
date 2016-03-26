@@ -139,9 +139,6 @@ class WMABaseView(TemplateView):
     def get_delete_url(self, obj):
         return reverse(get_url_name(self.opts, 'delete'), args=(obj.pk,))
 
-    def prime_session_for_redirection(self):
-        self.request.session['return_to_index_url'] = self.get_index_url
-
     def get_page_title(self):
         return self.page_title or self.model_name_plural
 
@@ -683,7 +680,9 @@ class IndexView(WMABaseView):
         }
 
         if self.is_pagemodel:
-            allowed_parent_types = self.model.allowed_parent_page_types()
+            allowed_parent_types = []
+            for model in self.model.allowed_parent_page_models():
+                allowed_parent_types.append(model._meta.verbose_name)
             user = request.user
             valid_parents = self.permission_helper.get_valid_parent_pages(user)
             valid_parent_count = valid_parents.count()
@@ -852,7 +851,6 @@ class CreateView(WMAFormView):
             return permission_denied_response(request)
 
         if self.is_pagemodel:
-            self.prime_session_for_redirection()
             user = request.user
             parents = self.permission_helper.get_valid_parent_pages(user)
             parent_count = parents.count()
@@ -861,9 +859,10 @@ class CreateView(WMAFormView):
             # user, so we send them along with that as the chosen parent page
             if parent_count == 1:
                 parent = parents.get()
-                return redirect(
-                    PAGES_CREATE_URL_NAME, self.opts.app_label,
-                    self.opts.model_name, parent.pk)
+                args = [self.opts.app_label, self.opts.model_name, parent.pk]
+                target_url = reverse(PAGES_CREATE_URL_NAME, args)
+                next_url = quote(self.get_index_url)
+                return redirect('%s?next=%s' % (target_url, next_url))
 
             # The page can be added in multiple places, so redirect to the
             # choose_parent view so that the parent can be specified
@@ -901,9 +900,11 @@ class ChooseParentView(WMABaseView):
     def post(self, request, *args, **kargs):
         form = self.get_form(request)
         if form.is_valid():
-            parent = form.cleaned_data['parent_page']
-            return redirect(PAGES_CREATE_URL_NAME, self.opts.app_label,
-                            self.opts.model_name, quote(parent.pk))
+            parent_pk = quote(form.cleaned_data['parent_page'].pk)
+            url_args = [self.opts.app_label, self.opts.model_name, parent_pk]
+            target_url = reverse(PAGES_CREATE_URL_NAME, args=url_args)
+            next_url = quote(self.get_index_url)
+            return redirect('%s?next=%s' % (target_url, next_url))
         context = {'view': self, 'form': form}
         return render(request, self.get_template(), context)
 
@@ -923,8 +924,8 @@ class EditView(ObjectSpecificView, CreateView):
         if not self.check_action_permitted():
             return permission_denied_response(request)
         if self.is_pagemodel:
-            self.prime_session_for_redirection()
-            return redirect(PAGES_EDIT_URL_NAME, self.object_id)
+            return redirect(
+                self.button_helper.get_action_url('edit', self.object_id))
         return super(CreateView, self).dispatch(request, *args, **kwargs)
 
     def get_meta_title(self):
@@ -957,8 +958,8 @@ class ConfirmDeleteView(ObjectSpecificView):
         if not self.check_action_permitted():
             return permission_denied_response(request)
         if self.is_pagemodel:
-            self.prime_session_for_redirection()
-            return redirect(PAGES_DELETE_URL_NAME, self.object_id)
+            return redirect(
+                self.button_helper.get_action_url('delete', self.object_id))
         return super(ConfirmDeleteView, self).dispatch(request, *args,
                                                        **kwargs)
 
@@ -1013,29 +1014,3 @@ class ConfirmDeleteView(ObjectSpecificView):
 
     def get_template_names(self):
         return self.model_admin.get_confirm_delete_template()
-
-
-class UnpublishRedirectView(ObjectSpecificView):
-    def check_action_permitted(self):
-        user = self.request.user
-        return self.permission_helper.can_unpublish_object(user, self.instance)
-
-    @method_decorator(login_required)
-    def dispatch(self, request, *args, **kwargs):
-        if not self.check_action_permitted():
-            return permission_denied_response(request)
-        self.prime_session_for_redirection()
-        return redirect(PAGES_UNPUBLISH_URL_NAME, self.object_id)
-
-
-class CopyRedirectView(ObjectSpecificView):
-    def check_action_permitted(self):
-        user = self.request.user
-        return self.permission_helper.can_copy_object(user, self.instance)
-
-    @method_decorator(login_required)
-    def dispatch(self, request, *args, **kwargs):
-        if not self.check_action_permitted():
-            return permission_denied_response(request)
-        self.prime_session_for_redirection()
-        return redirect(PAGES_COPY_URL_NAME, self.object_id)
