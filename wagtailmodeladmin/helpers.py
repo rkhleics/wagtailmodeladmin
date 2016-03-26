@@ -274,7 +274,7 @@ class ButtonHelper(object):
 class PageButtonHelper(ButtonHelper):
 
     unpublish_button_classnames = []
-    copy_button_classnmes = []
+    copy_button_classnames = []
 
     def unpublish_button(self, pk, classnames_add=[], classnames_exclude=[]):
         classnames = self.unpublish_button_classnames + classnames_add
