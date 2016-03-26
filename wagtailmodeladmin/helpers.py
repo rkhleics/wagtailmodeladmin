@@ -1,3 +1,4 @@
+import urllib
 from django.contrib.auth import get_permission_codename
 from django.contrib.auth.models import Permission
 from django.utils.translation import ugettext as _
@@ -9,23 +10,23 @@ from wagtail.wagtailcore.models import Page
 
 class PermissionHelper(object):
     """
-    Provides permission-related helper functions to effectively control what
-    a user can and can't do to instances of a 'typical' model, where
-    permissions are granted model-wide.
+    Provides permission-related helper functions to help determine what a 
+    user can do with a 'typical' model (where permissions are granted
+    model-wide).
     """
 
     def __init__(self, model):
         self.model = model
         self.opts = model._meta
 
-    def has_specific_permission(self, user, codename):
-        return user.has_perm("%s.%s" % (self.opts.app_label, codename))
-
     def get_all_model_permissions(self):
         return Permission.objects.filter(
             content_type__app_label=self.opts.app_label,
             content_type__model=self.opts.model_name,
         )
+
+    def has_specific_permission(self, user, codename):
+        return user.has_perm("%s.%s" % (self.opts.app_label, codename))
 
     def has_any_permissions(self, user):
         """
@@ -97,22 +98,36 @@ class PermissionHelper(object):
 
 class PagePermissionHelper(PermissionHelper):
     """
-    Provides permission-related helper functions to effectively control what
-    a user can and can't do to instances of a model extending Wagtail's Page
-    model. It differs wildly from ModelPermissionHelper, because
-    model-wide permissions aren't really relevant. We generally need to
-    determine things on an object-specific basis.
+    Provides permission-related helper functions to help determine what 
+    a user can do with a model extending Wagtail's Page model. It differs
+    from `PermissionHelper`, because model-wide permissions aren't really
+    relevant. We generally need to determine permissions on an 
+    object-specific basis.
     """
 
-    def has_add_permission(self, user):
+    def get_valid_parent_pages(self, user):
         """
-        For models extending Page, whether or not a page of this type can be
-        added somewhere in the tree essentially determines the add permission,
-        rather than actual model-wide permissions
+        Identifies possible parent pages for the current user by first looking
+        at allowed_parent_page_models() on self.model to limit options to the
+        correct type of page, then checking permissions on those individual
+        pages to make sure we have permission to add a subpage to it.
         """
-        return self.get_valid_parent_pages(user).count() > 0
+        # Start with empty qs
+        parents_qs = Page.objects.none()
 
-    def has_list_permission(self, user):
+        # Add pages of the correct type
+        for pt in self.model.allowed_parent_page_models():
+            pt_items = Page.objects.type(pt)
+            parents_qs = parents_qs | pt_items
+
+        # Exclude pages that we can't add subpages to
+        for page in parents_qs.all():
+            if not page.permissions_for_user(user).can_add_subpage():
+                parents_qs = parents_qs.exclude(pk=page.pk)
+
+        return parents_qs
+
+    def has_list_permssion(self, user):
         """
         For models extending Page, permitted actions are determined by
         permissions on individual objects. Rather than check for change
@@ -122,28 +137,13 @@ class PagePermissionHelper(PermissionHelper):
         """
         return True
 
-    def get_valid_parent_pages(self, user):
+    def has_add_permission(self, user):
         """
-        Identifies possible parent pages for the current user by first looking
-        at allowed_parent_page_types() on self.model to limit options to the
-        correct type of page, then checking permissions on those individual
-        pages to make sure we have permission to add a subpage to it.
+        For models extending Page, whether or not a page of this type can be
+        added somewhere in the tree essentially determines the add permission,
+        rather than actual model-wide permissions
         """
-        # Start with empty qs
-        parents_qs = Page.objects.none()
-
-        # Add pages of the correct type
-        valid_parent_types = self.model.allowed_parent_page_types()
-        for pt in valid_parent_types:
-            pt_items = Page.objects.type(pt.model_class())
-            parents_qs = parents_qs | pt_items
-
-        # Exclude pages that we can't add subpages to
-        for page in parents_qs.all():
-            if not page.permissions_for_user(user).can_add_subpage():
-                parents_qs = parents_qs.exclude(pk=page.pk)
-
-        return parents_qs
+        return self.get_valid_parent_pages(user).count() > 0
 
     def can_edit_object(self, user, obj):
         perms = obj.permissions_for_user(user)
@@ -177,12 +177,16 @@ def get_object_specific_url_pattern(model_meta, action):
 
 def get_url_name(model_meta, action='index'):
     return '%s_%s_modeladmin_%s/' % (
-        model_meta.app_label, model_meta.model_name, action)
+        model_meta.app_label, model_meta.model_name, action)    
 
 
 class ButtonHelper(object):
 
     default_button_classnames = ['button']
+    add_button_classnames = ['bicolor', 'icon', 'icon-plus']
+    inspect_button_classnames = []
+    edit_button_classnames = []
+    delete_button_classnames = ['no']
 
     def __init__(self, model, permission_helper, user,
                  inspect_view_enabled=False):
@@ -198,53 +202,57 @@ class ButtonHelper(object):
         finalised = [cn for cn in combined if cn not in classnames_exclude]
         return ' '.join(finalised)
 
-    def get_action_url(self, action='create', pk=None):
+    def get_action_url(self, action='index', pk=None):
         kwargs = {}
         if pk and action not in ('create', 'index'):
             kwargs.update({'object_id': pk})
         return reverse(get_url_name(self.opts, action), kwargs=kwargs)
 
+    def show_add_button(self):
+        return self.permission_helper.had_add_permission(self.user)
+
     def add_button(self, classnames_add=[], classnames_exclude=[]):
-        classnames = ['bicolor', 'icon', 'icon-plus'] + classnames_add
-        c = self.finalise_classname(classnames, classnames_exclude)
+        classnames = self.add_button_classnames + classnames_add
+        cn = self.finalise_classname(classnames, classnames_exclude)
         return {
             'url': self.get_action_url('create'),
             'label': _('Add %s') % self.model_name,
-            'classname': c,
+            'classname': cn,
             'title': _('Add a new %s') % self.model_name,
         }
 
     def inspect_button(self, pk, classnames_add=[], classnames_exclude=[]):
-        c = self.finalise_classname(classnames_add, classnames_exclude)
+        classnames = self.inspect_button_classnames + classnames_add
+        cn = self.finalise_classname(classnames, classnames_exclude)
         return {
             'url': self.get_action_url('inspect', pk),
             'label': _('Inspect'),
-            'classname': c,
+            'classname': cn,
             'title': _('View details for this %s') % self.model_name,
         }
 
     def edit_button(self, pk, classnames_add=[], classnames_exclude=[]):
-        c = self.finalise_classname(classnames_add, classnames_exclude)
+        classnames = self.edit_button_classnames + classnames_add
+        cn = self.finalise_classname(classnames, classnames_exclude)
         return {
             'url': self.get_action_url('edit', pk),
             'label': _('Edit'),
-            'classname': c,
+            'classname': cn,
             'title': _('Edit this %s') % self.model_name,
         }
 
     def delete_button(self, pk, classnames_add=[], classnames_exclude=[]):
-        classnames = ['no'] + classnames_add
-        c = self.finalise_classname(classnames, classnames_exclude)
+        classnames = self.delete_button_classnames + classnames_add
+        cn = self.finalise_classname(classnames, classnames_exclude)
         return {
             'url': self.get_action_url('confirm_delete', pk),
             'label': _('Delete'),
-            'classname': c,
+            'classname': cn,
             'title': _('Delete this %s') % self.model_name,
         }
 
     def get_buttons_for_obj(self, obj, exclude=[], classnames_add=[],
                             classnames_exclude=[]):
-        user = self.user
         ph = self.permission_helper
         pk = quote(getattr(obj, self.opts.pk.attname))
         btns = []
@@ -252,11 +260,11 @@ class ButtonHelper(object):
             btns.append(
                 self.inspect_button(pk, classnames_add, classnames_exclude)
             )
-        if('edit' not in exclude and ph.can_edit_object(user, obj)):
+        if('edit' not in exclude and ph.can_edit_object(self.user, obj)):
             btns.append(
                 self.edit_button(pk, classnames_add, classnames_exclude)
             )
-        if('delete' not in exclude and ph.can_delete_object(user, obj)):
+        if('delete' not in exclude and ph.can_delete_object(self.user, obj)):
             btns.append(
                 self.delete_button(pk, classnames_add, classnames_exclude)
             )
@@ -265,21 +273,26 @@ class ButtonHelper(object):
 
 class PageButtonHelper(ButtonHelper):
 
+    unpublish_button_classnames = []
+    copy_button_classnmes = []
+
     def unpublish_button(self, pk, classnames_add=[], classnames_exclude=[]):
-        c = self.finalise_classname(classnames_add, classnames_exclude)
+        classnames = self.unpublish_button_classnames + classnames_add
+        cn = self.finalise_classname(classnames, classnames_exclude)
         return {
             'url': self.get_action_url('unpublish', pk),
             'label': _('Unpublish'),
-            'classname': c,
+            'classname': cn,
             'title': _('Unpublish this %s') % self.model_name,
         }
 
     def copy_button(self, pk, classnames_add=[], classnames_exclude=[]):
-        c = self.finalise_classname(classnames_add, classnames_exclude)
+        classnames = self.copy_button_classnames + classnames_add
+        cn = self.finalise_classname(classnames, classnames_exclude)
         return {
             'url': self.get_action_url('copy', pk),
             'label': _('Copy'),
-            'classname': c,
+            'classname': cn,
             'title': _('Copy this %s') % self.model_name,
         }
 

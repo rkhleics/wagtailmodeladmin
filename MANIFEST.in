@@ -4,7 +4,5 @@ recursive-include wagtailmodeladmin/static *.css
 recursive-include wagtailmodeladmin/templates *.html
 recursive-include wagtailmodeladmin/recipes/readonly/static *.css
 recursive-include wagtailmodeladmin/recipes/readonly/templates *.html
-recursive-include wagtailmodeladmin/recipes/treebeard/static *.css
-recursive-include wagtailmodeladmin/recipes/treebeard/templates *.html
 recursive-include wagtailmodeladmin/locale *.po
 recursive-include wagtailmodeladmin *.py
