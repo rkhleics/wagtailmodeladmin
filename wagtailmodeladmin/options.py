@@ -19,7 +19,7 @@ from .helpers import (
     get_url_pattern, get_object_specific_url_pattern, get_url_name)
 from .views import (
     IndexView, InspectView, CreateView, ChooseParentView, EditView,
-    ConfirmDeleteView, CopyRedirectView, UnpublishRedirectView)
+    ConfirmDeleteView)
 
 
 class WagtailRegisterable(object):
