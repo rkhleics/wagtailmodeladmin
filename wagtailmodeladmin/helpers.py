@@ -274,7 +274,7 @@ class ButtonHelper(object):
 class PageButtonHelper(ButtonHelper):
 
     unpublish_button_classnames = []
-    copy_button_classnmes = []
+    copy_button_classnames = []
 
     def get_action_url(self, action='index', pk=None):
         if action not in ('create', 'index', 'inspect'):
