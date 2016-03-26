@@ -676,7 +676,6 @@ class IndexView(WMABaseView):
             'paginator': paginator,
             'page_obj': page_obj,
             'object_list': page_obj.object_list,
-            'has_add_permission': has_add_permission,
         }
 
         if self.is_pagemodel:
