@@ -209,7 +209,7 @@ class ButtonHelper(object):
         return reverse(get_url_name(self.opts, action), kwargs=kwargs)
 
     def show_add_button(self):
-        return self.permission_helper.had_add_permission(self.user)
+        return self.permission_helper.has_add_permission(self.user)
 
     def add_button(self, classnames_add=[], classnames_exclude=[]):
         classnames = self.add_button_classnames + classnames_add
