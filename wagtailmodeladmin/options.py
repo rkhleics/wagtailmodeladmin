@@ -15,11 +15,12 @@ from wagtail.wagtailcore import hooks
 
 from .menus import ModelAdminMenuItem, GroupMenuItem, SubMenu
 from .helpers import (
-    PermissionHelper, PagePermissionHelper, ButtonHelper, PageButtonHelper,
-    get_url_pattern, get_object_specific_url_pattern, get_url_name)
+    AdminURLHelper, PageAdminURLHelper,
+    PermissionHelper, PagePermissionHelper,
+    ButtonHelper, PageButtonHelper)
 from .views import (
     IndexView, InspectView, CreateView, ChooseParentView, EditView,
-    ConfirmDeleteView)
+    DeleteView)
 
 
 class WagtailRegisterable(object):
@@ -116,15 +117,16 @@ class ModelAdmin(WagtailRegisterable):
     create_view_class = CreateView
     inspect_view_class = InspectView
     edit_view_class = EditView
-    confirm_delete_view_class = ConfirmDeleteView
+    delete_view_class = DeleteView
     choose_parent_view_class = ChooseParentView
     index_template_name = ''
     create_template_name = ''
     edit_template_name = ''
     inspect_template_name = ''
-    confirm_delete_template_name = ''
+    delete_template_name = ''
     choose_parent_template_name = ''
     permission_helper_class = None
+    url_helper_class = None
     button_helper_class = None
     index_view_extra_css = []
     index_view_extra_js = []
@@ -144,8 +146,8 @@ class ModelAdmin(WagtailRegisterable):
         self.opts = self.model._meta
         self.is_pagemodel = issubclass(self.model, Page)
         self.parent = parent
-        permission_helper_class = self.get_permission_helper_class()
-        self.permission_helper = permission_helper_class(self.model)
+        self.permission_helper = self.get_permission_helper_class()(self.model)
+        self.url_helper = self.get_url_helper_class()(self.model)
 
     def get_permission_helper_class(self):
         if self.permission_helper_class:
@@ -153,6 +155,13 @@ class ModelAdmin(WagtailRegisterable):
         if self.is_pagemodel:
             return PagePermissionHelper
         return PermissionHelper
+
+    def get_url_helper_class(self):
+        if self.url_helper_class:
+            return self.url_helper_class
+        if self.is_pagemodel:
+            return PageAdminURLHelper
+        return AdminURLHelper
 
     def get_button_helper_class(self):
         if self.button_helper_class:
@@ -249,15 +258,6 @@ class ModelAdmin(WagtailRegisterable):
         """
         return self.search_fields or ()
 
-    def get_index_url(self):
-        return reverse(get_url_name(self.opts))
-
-    def get_choose_parent_url(self):
-        return reverse(get_url_name(self.opts, 'choose_parent'))
-
-    def get_create_url(self):
-        return reverse(get_url_name(self.opts, 'create'))
-
     def get_inspect_view_fields(self):
         if not self.inspect_view_fields:
             found_fields = []
@@ -332,8 +332,8 @@ class ModelAdmin(WagtailRegisterable):
         view_class = self.create_view_class
         return view_class.as_view(**kwargs)(request)
 
-    def inspect_view(self, request, object_id):
-        kwargs = {'model_admin': self, 'object_id': object_id}
+    def inspect_view(self, request, object_pk):
+        kwargs = {'model_admin': self, 'object_pk': object_pk}
         view_class = self.inspect_view_class
         return view_class.as_view(**kwargs)(request)
 
@@ -349,18 +349,18 @@ class ModelAdmin(WagtailRegisterable):
         view_class = self.choose_parent_view_class
         return view_class.as_view(**kwargs)(request)
 
-    def edit_view(self, request, object_id):
+    def edit_view(self, request, object_pk):
         """
         Instantiates a class-based view to provide 'edit' functionality for the
         assigned model, or redirect to Wagtail's edit view if the assigned
         model extends 'Page'. The view class used can be overridden by changing
         the  'edit_view_class' attribute.
         """
-        kwargs = {'model_admin': self, 'object_id': object_id}
+        kwargs = {'model_admin': self, 'object_pk': object_pk}
         view_class = self.edit_view_class
         return view_class.as_view(**kwargs)(request)
 
-    def confirm_delete_view(self, request, object_id):
+    def delete_view(self, request, object_pk):
         """
         Instantiates a class-based view to provide 'delete confirmation'
         functionality for the assigned model, or redirect to Wagtail's delete
@@ -368,8 +368,8 @@ class ModelAdmin(WagtailRegisterable):
         used can be overridden by changing the 'confirm_delete_view_class'
         attribute.
         """
-        kwargs = {'model_admin': self, 'object_id': object_id}
-        view_class = self.confirm_delete_view_class
+        kwargs = {'model_admin': self, 'object_pk': object_pk}
+        view_class = self.delete_view_class
         return view_class.as_view(**kwargs)(request)
 
     def get_templates(self, action='index'):
@@ -432,15 +432,14 @@ class ModelAdmin(WagtailRegisterable):
         """
         return self.edit_template_name or self.get_templates('edit')
 
-    def get_confirm_delete_template(self):
+    def get_delete_template(self):
         """
-        Returns a template to be used when rendering 'confirm_delete_view'. If
-        a template is specified by the 'confirm_delete_template_name'
+        Returns a template to be used when rendering 'delete_view'. If
+        a template is specified by the 'delete_template_name'
         attribute, that will be used. Otherwise, a list of preferred template
         names are returned.
         """
-        return self.confirm_delete_template_name or self.get_templates(
-            'confirm_delete')
+        return self.delete_template_name or self.get_templates('delete')
 
     def get_menu_item(self, order=None):
         """
@@ -467,27 +466,30 @@ class ModelAdmin(WagtailRegisterable):
         our the views that class offers.
         """
         urls = (
-            url(get_url_pattern(self.opts),
-                self.index_view, name=get_url_name(self.opts)),
-            url(get_url_pattern(self.opts, 'create'),
-                self.create_view, name=get_url_name(self.opts, 'create')),
-            url(get_object_specific_url_pattern(self.opts, 'edit'),
-                self.edit_view, name=get_url_name(self.opts, 'edit')),
-            url(get_object_specific_url_pattern(self.opts, 'confirm_delete'),
-                self.confirm_delete_view,
-                name=get_url_name(self.opts, 'confirm_delete')),
+            url(self.url_helper.get_action_url_pattern('index'),
+                self.index_view,
+                name=self.url_helper.get_action_url_name('index')),
+            url(self.url_helper.get_action_url_pattern('create'),
+                self.create_view,
+                name=self.url_helper.get_action_url_name('create')),
+            url(self.url_helper.get_action_url_pattern('edit'),
+                self.edit_view,
+                name=self.url_helper.get_action_url_name('edit')),
+            url(self.url_helper.get_action_url_pattern('delete'),
+                self.delete_view,
+                name=self.url_helper.get_action_url_name('delete')),
         )
         if self.inspect_view_enabled:
             urls = urls + (
-                url(get_object_specific_url_pattern(self.opts, 'inspect'),
+                url(self.url_helper.get_action_url_pattern('inspect'),
                     self.inspect_view,
-                    name=get_url_name(self.opts, 'inspect')),
+                    name=self.url_helper.get_action_url_name('inspect')),
             )
         if self.is_pagemodel:
             urls = urls + (
-                url(get_url_pattern(self.opts, 'choose_parent'),
+                url(self.url_helper.get_action_url_pattern('choose_parent'),
                     self.choose_parent_view,
-                    name=get_url_name(self.opts, 'choose_parent')),
+                    name=self.url_helper.get_action_url_name('choose_parent')),
             )
         return urls
 

@@ -10,9 +10,10 @@ class ModelAdminMenuItem(MenuItem):
         self.model_admin = model_admin
         self.model = model_admin.model
         self.opts = model_admin.model._meta
+        url = model_admin.url_helper.get_action_url('index')
         classnames = 'icon icon-%s' % model_admin.get_menu_icon()
         super(ModelAdminMenuItem, self).__init__(
-            label=model_admin.get_menu_label(), url=model_admin.get_index_url(),
+            label=model_admin.get_menu_label(), url=url,
             classnames=classnames, order=order)
 
     def is_shown(self, request):
