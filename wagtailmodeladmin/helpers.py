@@ -1,8 +1,8 @@
-import urllib
 from django.contrib.auth import get_permission_codename
 from django.conf.urls import url
 from django.contrib.auth.models import Permission
 from django.utils.translation import ugettext as _
+from django.utils.http import urlencode, urlquote
 from django.utils.encoding import force_text
 from django.contrib.admin.utils import quote
 from django.core.urlresolvers import reverse
@@ -47,81 +47,86 @@ class PageAdminURLHelper(AdminURLHelper):
         if action in ('index', 'create', 'choose_parent', 'inspect'):
             return super(PageAdminURLHelper, self).get_action_url(action, pk)
         target_url = reverse('wagtailadmin_pages:%s' % action, args=[pk])
-        next_url = self.get_action_url('index')
-        return '%s?next=%s' % (target_url, urllib.quote(next_url))
+        next_url = urlquote(self.get_action_url('index'))
+        return '%s?next=%s' % (target_url, next_url)
 
 
 class PermissionHelper(object):
     """
     Provides permission-related helper functions to help determine what a 
     user can do with a 'typical' model (where permissions are granted
-    model-wide).
+    model-wide), and to a specific instance of that model.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, inspect_view_enabled=False):
         self.model = model
         self.opts = model._meta
+        self.inspect_view_enabled = inspect_view_enabled
 
     def get_all_model_permissions(self):
+        """
+        Return a queryset of all Permission objects pertaining to the `model`
+        specified at initialisation.
+        """
         return Permission.objects.filter(
             content_type__app_label=self.opts.app_label,
             content_type__model=self.opts.model_name,
         )
 
-    def has_specific_permission(self, user, codename):
-        return user.has_perm("%s.%s" % (self.opts.app_label, codename))
+    def get_perm_codename(self, action):
+        return get_permission_codename(action, self.opts)
+
+    def has_specific_permission(self, user, perm_codename):
+        """
+        Combine `perm_codename` with `self.opts.app_label` to call the provided 
+        django user's built-in `has_perm` method.
+        """
+        return user.has_perm("%s.%s" % (self.opts.app_label, perm_codename))
 
     def has_any_permissions(self, user):
         """
-        Return a boolean to indicate whether the supplied user has any
-        permissions at all on the associated model
+        Return a boolean to indicate whether `user` has any model-wide 
+        permissions
         """
-        for perm in self.get_all_model_permissions():
-            if self.has_specific_permission(user, perm.codename):
+        for perm in self.get_all_model_permissions().values('codename'):
+            if self.has_specific_permission(user, perm['codename']):
                 return True
         return False
-
-    def has_add_permission(self, user):
-        """
-        For typical models, whether or not a user can add an object depends
-        on their permissions on that model
-        """
-        return self.has_specific_permission(
-            user, get_permission_codename('add', self.opts))
-
-    def has_edit_permission(self, user):
-        """
-        For typical models, whether or not a user can edit an object depends
-        on their permissions on that model
-        """
-        return self.has_specific_permission(
-            user, get_permission_codename('change', self.opts))
-
-    def has_delete_permission(self, user):
-        """
-        For typical models, whether or not a user can delete an object depends
-        on their permissions on that model
-        """
-        return self.has_specific_permission(
-            user, get_permission_codename('delete', self.opts))
 
     def has_list_permission(self, user):
         return self.has_any_permissions(user)
 
+    def has_add_permission(self, user):
+        """
+        Return a boolean to indicate whether `user` has the model-wide add
+        permission
+        """
+        return self.has_specific_permission(
+            user, self.get_perm_codename('add'))
+
+    def has_edit_permission(self, user):
+        """
+        Return a boolean to indicate whether `user` has the model-wide
+        edit/change permission
+        """
+        return self.has_specific_permission(
+            user, self.get_perm_codename('change'))
+
+    def has_delete_permission(self, user):
+        """
+        Return a boolean to indicate whether `user` has the model-wide
+        delete permission
+        """
+        return self.has_specific_permission(
+            user, self.get_perm_codename('delete'))
+
+    def can_inspect_object(self, user, obj):
+        return self.inspect_view_enabled and self.has_any_permissions(user)
+
     def can_edit_object(self, user, obj):
-        """
-        Used from within templates to decide what functionality to allow
-        for a specific object. For typical models, we just return the
-        model-wide permission.
-        """
         return self.has_edit_permission(user)
 
     def can_delete_object(self, user, obj):
-        """
-        Used from within templates to decide what functionality to allow
-        for a specific object. For typical models, we just return the
-        model-wide permission.
-        """
         return self.has_delete_permission(user)
 
     def can_unpublish_object(self, user, obj):
@@ -174,7 +179,7 @@ class PagePermissionHelper(PermissionHelper):
         """
         For models extending Page, permitted actions are determined by
         permissions on individual objects. Rather than check for change
-        permissions on every object individually (which would be quite
+        permissions on every object individually (which coule be quite
         resource intensive), we simply always allow the list view to be
         viewed, and limit further functionality when relevant.
         """
@@ -184,7 +189,7 @@ class PagePermissionHelper(PermissionHelper):
         """
         For models extending Page, whether or not a page of this type can be
         added somewhere in the tree essentially determines the add permission,
-        rather than actual model-wide permissions
+        rather than actual model-wide permissions.
         """
         return self.get_valid_parent_pages(user).count() > 0
 
@@ -201,26 +206,8 @@ class PagePermissionHelper(PermissionHelper):
         return obj.live and perms.can_unpublish()
 
     def can_copy_object(self, user, obj):
-        parent_page = obj.get_parent()
-        return parent_page.permissions_for_user(user).can_publish_subpage()
-
-
-def get_url_pattern(model_meta, action=None):
-    if not action:
-        return r'^modeladmin/%s/%s/$' % (
-            model_meta.app_label, model_meta.model_name)
-    return r'^modeladmin/%s/%s/%s/$' % (
-        model_meta.app_label, model_meta.model_name, action)
-
-
-def get_object_specific_url_pattern(model_meta, action):
-    return r'^modeladmin/%s/%s/%s/(?P<object_pk>[-\w]+)/$' % (
-        model_meta.app_label, model_meta.model_name, action)
-
-
-def get_url_name(model_meta, action='index'):
-    return '%s_%s_modeladmin_%s' % (
-        model_meta.app_label, model_meta.model_name, action)
+        parent = obj.get_parent()
+        return parent.permissions_for_user(user).can_publish_subpage()
 
 
 class ButtonHelper(object):
@@ -231,15 +218,15 @@ class ButtonHelper(object):
     edit_button_classnames = []
     delete_button_classnames = ['no']
 
-    def __init__(self, model, user, permission_helper, url_helper,
-                 inspect_view_enabled=False):
-        self.user = user
-        self.model = model
-        self.opts = model._meta
-        self.permission_helper = permission_helper
-        self.url_helper = url_helper
-        self.model_name = force_text(self.opts.verbose_name).lower()
-        self.inspect_view_enabled = inspect_view_enabled    
+    def __init__(self, view, request):
+        self.view = view
+        self.request = request
+        self.model = view.model
+        self.opts = view.model._meta
+        self.model_name = force_text(self.opts.verbose_name)
+        self.model_name_plural = force_text(self.opts.verbose_name_plural)
+        self.permission_helper = view.permission_helper
+        self.url_helper = view.url_helper
 
     def finalise_classname(self, classnames_add=[], classnames_exclude=[]):
         combined = self.default_button_classnames + classnames_add
@@ -250,7 +237,7 @@ class ButtonHelper(object):
         return self.url_helper.get_action_url(action, pk)
 
     def show_add_button(self):
-        return self.permission_helper.has_add_permission(self.user)
+        return self.permission_helper.has_add_permission(self.request.user)
 
     def add_button(self, classnames_add=[], classnames_exclude=[]):
         classnames = self.add_button_classnames + classnames_add
@@ -294,18 +281,19 @@ class ButtonHelper(object):
 
     def get_buttons_for_obj(self, obj, exclude=[], classnames_add=[],
                             classnames_exclude=[]):
+        user = self.request.user
         ph = self.permission_helper
         pk = quote(getattr(obj, self.opts.pk.attname))
         btns = []
-        if('inspect' not in exclude and self.inspect_view_enabled):
+        if('inspect' not in exclude and ph.can_inspect_object(user, obj)):
             btns.append(
                 self.inspect_button(pk, classnames_add, classnames_exclude)
             )
-        if('edit' not in exclude and ph.can_edit_object(self.user, obj)):
+        if('edit' not in exclude and ph.can_edit_object(user, obj)):
             btns.append(
                 self.edit_button(pk, classnames_add, classnames_exclude)
             )
-        if('delete' not in exclude and ph.can_delete_object(self.user, obj)):
+        if('delete' not in exclude and ph.can_delete_object(user, obj)):
             btns.append(
                 self.delete_button(pk, classnames_add, classnames_exclude)
             )
@@ -339,11 +327,11 @@ class PageButtonHelper(ButtonHelper):
 
     def get_buttons_for_obj(self, obj, exclude=[], classnames_add=[],
                             classnames_exclude=[]):
-        user = self.user
+        user = self.request.user
         ph = self.permission_helper
         pk = quote(getattr(obj, self.opts.pk.attname))
         btns = []
-        if('inspect' not in exclude and self.inspect_view_enabled):
+        if('inspect' not in exclude and ph.can_inspect_object(user, obj)):
             btns.append(
                 self.inspect_button(pk, classnames_add, classnames_exclude)
             )
