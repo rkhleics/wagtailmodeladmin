@@ -9,12 +9,14 @@ Simply extend the ``ModelAdmin`` class, override a few attributes to
 suit your needs, link it into Wagtail using a few hooks (you can copy
 and paste from the examples below), and you're good to go.
 
-NOTE: ``wagtailmodeladmin`` is now part of Wagtail (from v1.5rc1)
+NOTE: ``wagtailmodeladmin`` is now part of Wagtail (from v1.5)
 -----------------------------------------------------------------
 
-As of version ``1.5rc1``, Wagtail now comes packaged with ``wagtailmodeladmin`` as a contrib app, ``wagtail.contrib.modeladmin``, so you no longer need to install it separately. However, the versions are not identical. Some underlying components/classes have been re-factored, so **there will likely be upgrade considerations for projects with more customised `ModelAdmin` implementations** (where views and helpers have been extended and overridden).  
+As of version ``1.5``, Wagtail now comes packaged with ``wagtailmodeladmin`` as a contrib app, ``wagtail.contrib.modeladmin``, so you no longer need to install it separately. However, the versions are not identical. Some underlying components/classes have been re-factored, so **there will likely be upgrade considerations for projects with more customised `ModelAdmin` implementations** (where views and helpers have been extended and overridden).  
 
 On the plus side, the new version is better integrated, and provides a more consistent experience, as a developer and user. It also includes bug fixes, performance improvements, and tests, making this standalone version redundant. For these reasons, **this version will no longer be maintained**.
+
+View the documentation here: http://docs.wagtail.io/en/latest/reference/contrib/modeladmin.html
 
 Upgrading from ``wagtailmodeladmin`` to ``wagtail.contrib.modeladmin``
 ----------------------------------------------------------------------
