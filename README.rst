@@ -23,7 +23,7 @@ Upgrading from ``wagtailmodeladmin`` to ``wagtail.contrib.modeladmin``
 
 If you only used the core ``ModelAdmin`` and ``ModelAdminGroup`` classes in your projects, and made use of standard attributes/methods for customisation, migrating to the new version should be as simple as: 
 
-1. Follow the installation instructions outlined in the Wagtail docs: http://docs.wagtail.io/en/latest/reference/contrib/modeladmin.html).
+1. Follow the installation instructions outlined in the Wagtail docs: http://docs.wagtail.io/en/latest/reference/contrib/modeladmin.html.
 
 2. In ``wagtail_hooks.py``, for each of your custom apps, import the core classes from their new locations in ``wagtail.contrib.modeladmin.options`` instead of ``wagtailmodeladmin.options``.
 
