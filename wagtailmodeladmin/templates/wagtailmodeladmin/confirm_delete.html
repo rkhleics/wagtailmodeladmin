@@ -22,7 +22,7 @@
     	        <p>{{ view.confirmation_message }}</p>
     	        <form action="{{ view.get_delete_url }}" method="POST">
     	            {% csrf_token %}
-    	            <button type="submit" class="serious">{% trans 'Yes, delete it' %}</button>
+    	            <button type="submit" class="button serious">{% trans 'Yes, delete it' %}</button>
     	        </form>
     	    {% endif %}
         </div>
